@@ -15,9 +15,14 @@ var TV = (function () {
   // Tizen 2 (2016 TVs, WebKit 538) repaints every shadow on every frame of a focus animation: home.css turns them off.
   // So do TVs under 2 GB that draw the page at twice its size (an LG on webOS TV Lite 10, MT5889, 1.3 GB, ratio 2:
   // 23-28 fps moving along the shelf, 60 with lite; shadows off alone, 45). deviceMemory rounds down to 1 under 2 GB on
-  // webOS 5+ and Tizen 5+, where 1.5 GB TVs at a ratio of 1 run smoothly.
-  if (tizen2 || ((webos || samsung) && navigator.deviceMemory && navigator.deviceMemory <= 1 && (window.devicePixelRatio || 1) > 1)) {
+  // webOS 5+ and Tizen 5+, where 1.5 GB TVs at a ratio of 1 run smoothly. 2 GB at that ratio too: an LG C1 (webOS 6)
+  // ran the shelf at 20 fps, 38 with only movement animating (calm), 40 with will-change, 58 with lite.
+  // performance in config.properties overrides it (full, calm or lite).
+  var perf = (window.CONFIG || {}).performance || 'auto', big = (window.devicePixelRatio || 1) > 1 && (webos || samsung);
+  if (perf === 'lite' || (perf === 'auto' && (tizen2 || (big && navigator.deviceMemory && navigator.deviceMemory <= 2)))) {
     document.documentElement.className += ' lite';
+  } else if (perf === 'calm') {
+    document.documentElement.className += ' calm';
   }
 
   /** One Luna call; done(result) with null on failure. */
@@ -195,6 +200,11 @@ var TV = (function () {
   // Newer webOS (11 tested) denies listLaunchPoints to Developer Mode apps, but still answers getAppLoadStatus for
   // one app id: these are checked one by one there. Their icons can't be read, so they get our logo where web/icons
   // has one, as on Samsung, and otherwise their name on the brand's color: [id, title, logo, color].
+  // LG icons replaced with our logo: YouTube's is the play button alone, ours the whole wordmark; Crunchyroll's and
+  // Spotify's are 150 px bitmaps, blurry on a tile drawn at twice its size, ours vectors.
+  var LG_ICONS = {'youtube.leanback.v4': 'icons/youtube.png', 'com.crunchyroll.webapp': 'icons/crunchyroll.svg',
+    'spotify-beehive': 'icons/spotify-wordmark.svg'};
+
   var KNOWN = [
     ['netflix', 'Netflix', 'icons/netflix.svg'], ['youtube.leanback.v4', 'YouTube', 'icons/youtube.png'],
     ['amazon', 'Prime Video', 'icons/prime.png'], ['com.disney.disneyplus-prod', 'Disney+'],
@@ -202,7 +212,7 @@ var TV = (function () {
     ['com.apple.appletv', 'Apple TV'], ['hulu', 'Hulu'], ['com.peacock.tv', 'Peacock'], ['com.nfl.app', 'NFL'],
     ['globoplaywebos', 'Globoplay'], ['spotify-beehive', 'Spotify', 'icons/spotify.svg'],
     ['tv.twitch.tv.starshot.lg', 'Twitch', '', '#9146FF'], ['cdp-30', 'Plex', '', '#E5A00D'],
-    ['org.jellyfin.webos', 'Jellyfin', 'icons/jellyfin.svg'], ['com.crunchyroll.webapp', 'Crunchyroll', '', '#F47521'],
+    ['org.jellyfin.webos', 'Jellyfin', 'icons/jellyfin.svg'], ['org.litefin.app', 'Litefin', '', '#6B46C1'], ['com.crunchyroll.webapp', 'Crunchyroll', '', '#F47521'],
     ['com.webos.app.browser', 'Web Browser', '', '#3A7BD5']
   ];
 
@@ -443,7 +453,7 @@ var TV = (function () {
         for (var i = 0; i < points.length; i++) {
           var p = points[i];
           if (!p.id || p.id === self || HIDDEN.test(p.id)) continue;
-          out.push({id: p.id, title: p.title || p.id, icon: p.largeIcon || p.icon || '', color: p.bgColor || p.iconColor || ''});
+          out.push({id: p.id, title: p.title || p.id, icon: LG_ICONS[p.id] || p.largeIcon || p.icon || '', color: p.bgColor || p.iconColor || ''});
         }
         return out;
       }

@@ -53,7 +53,8 @@
     else if (!on && hasClass(e, c)) e.className = (' ' + e.className + ' ').replace(' ' + c + ' ', ' ').replace(/^\s+|\s+$/g, '');
   }
 
-  var stage = $('stage'), body = document.body;
+  var stage = $('stage'), body = document.body, HERO = CONFIG.heroCard !== false;
+  if (!HERO) body.className += ' no-hero';
 
   /** The 1920 × 1080 stage fills the window (on the TV it already is 1920 × 1080). */
   function fit() {
@@ -76,7 +77,9 @@
     ['peacock', /peacock/, /peacock/i, ['#1C1C1E', '#000000']],
     ['nfl', /nfl/, /^nfl/i, ['#013369', '#00163D']],
     ['globoplay', /globoplay/, /globoplay/i, ['#FF8A1F', '#FF2D5A']],
+    ['litefin', /litefin/i, /litefin/i, ['#000000', '#000000']],
     ['jellyfin', /jellyfin/i, /jellyfin/i, ['#AA5CC3', '#00A4DC']],
+    ['crunchyroll', /crunchyroll/, /crunchyroll/i, ['#FF640A', '#F05A00']],
     ['spotify', /spotify/, /spotify/i, ['#1DB954', '#0F7A36']]
   ];
   // Apps shown at once, as on Android: 8 (today's smallest tiles, 178 wide); the shelf scrolls for the rest. The
@@ -329,11 +332,12 @@
       setClass(list[i], 'focus', st.zone === Z.TOP && st.top === i);
     }
     list = $('buttons').children;
-    for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.TOP && st.top === 3 + i);
-    setClass($('quotes'), 'hide', st.zone === Z.TOP && st.top >= 3);
+    for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.TOP && st.top === NT + i);
+    setClass($('quotes'), 'hide', st.zone === Z.TOP && st.top >= NT);
     layoutCards();
     list = $('cards').children;
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.CARDS && st.card === i);
+    marquee(st.zone === Z.CARDS ? list[st.card] : null);
     list = $('tiles').children;
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.SHELF && st.shelf === i);
     revealShelf();
@@ -378,14 +382,16 @@
 
   // MARK: - Top: title, tabs, buttons, quotes
 
-  var TAB_KIND = [null, 'movie', 'tv'];
+  // anime_tab in config.properties adds Anime: trending anime, in Jellyfin, on Crunchyroll or to request.
+  var TAB_KIND = CONFIG.animeTab ? [null, 'movie', 'tv', 'anime'] : [null, 'movie', 'tv'];
+  var NT = TAB_KIND.length;   // the round buttons come after the tabs in st.top: NT, NT + 1, NT + 2
 
   function renderTop() {
     $('title').textContent = tr('For You');
     var tabs = $('tabs');
     tabs.innerHTML = '';
-    var names = [tr('Explore'), tr('Movies'), tr('Shows')];
-    for (var i = 0; i < 3; i++) {
+    var names = [tr('Explore'), tr('Movies'), tr('Shows'), tr('Anime')];
+    for (var i = 0; i < NT; i++) {
       var t = el('button', 'tab', tabs, names[i]);
       hover(t, Z.TOP, i);
     }
@@ -397,7 +403,7 @@
       r.style.left = (1596 + 88 * b) + 'px';
       sym(defs[b][0], r);
       el('div', 'tip', r, defs[b][1]);
-      hover(r, Z.TOP, 3 + b);
+      hover(r, Z.TOP, NT + b);
     }
   }
 
@@ -418,11 +424,12 @@
     var holder = $('cards');
     setClass(body, 'no-picks', !list.length);
     setClass(body, 'no-key', !Data.hasKey());   // as on Android: no title or tabs that could never show anything
-    if (!Data.hasKey() && st.zone === Z.TOP && st.top < 3) st.top = 3;
+    if (!Data.hasKey() && st.zone === Z.TOP && st.top < NT) st.top = NT;
     var same = list.length === cards.length;
     for (var i = 0; same && i < list.length; i++) same = list[i].id === cards[i].id && list[i].backdrop === cards[i].backdrop && list[i].meta === cards[i].meta;
     if (same && holder.children.length === list.length) return;
     cards = list;
+    marqueeOn = null;   // its nodes go now
     holder.innerHTML = '';
     for (var c = 0; c < list.length; c++) {
       var p = list[c], card = el('div', 'card', holder);
@@ -447,9 +454,10 @@
    * transform and the backdrop's opacity animate: the widths change at once (older TVs).
    */
   function layoutCards() {
-    var holder = $('cards'), nodes = holder.children, left = 80, scroll = Math.max(0, st.card - 2) * 360;
+    // hero_card=false keeps every card narrow (five in view), the focused one only lifted, with its line of details.
+    var holder = $('cards'), nodes = holder.children, left = 80, scroll = Math.max(0, st.card - (HERO ? 2 : 4)) * 360;
     for (var i = 0; i < nodes.length; i++) {
-      var wide = i === st.card, w = wide ? 1040 : 320, n = nodes[i], at = left - scroll;
+      var wide = HERO && i === st.card, w = wide ? 1040 : 320, n = nodes[i], at = left - scroll;
       n.style.left = left + 'px';
       n.style.width = w + 'px';
       setClass(n, 'wide', wide);
@@ -461,6 +469,39 @@
       left += w + 40;
     }
     holder.style.webkitTransform = holder.style.transform = 'translateX(' + (-scroll) + 'px)';
+  }
+
+  // The focused card's title and details, the ones cut off, move left like a conveyor (hero_card=false): each line
+  // twice in a row, both the same length and speed, so they come round again at once. Only a transform moves.
+  var marqueeOn = null, MARQUEE_GAP = 64, MARQUEE_SPEED = 70;   // px between the end and the start again; px a second
+
+  function marquee(card) {
+    if (card === marqueeOn) return;
+    if (marqueeOn) {
+      var old = marqueeOn.querySelectorAll('[data-text]');
+      for (var o = 0; o < old.length; o++) { old[o].textContent = old[o].getAttribute('data-text'); old[o].removeAttribute('data-text'); }
+      setClass(marqueeOn, 'marquee', false);
+    }
+    marqueeOn = card;
+    if (!card || HERO) return;
+    var all = card.querySelectorAll('.name, .meta'), lines = [], widths = [], longest = 0;
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].scrollWidth <= all[i].clientWidth) continue;   // fits: stays put (a pixel over already gets the ellipsis)
+      lines.push(all[i]);
+      widths.push(all[i].scrollWidth);
+      longest = Math.max(longest, all[i].scrollWidth);
+    }
+    if (!lines.length) return;
+    var cycle = longest + MARQUEE_GAP;
+    for (var j = 0; j < lines.length; j++) {
+      var text = lines[j].textContent;
+      lines[j].setAttribute('data-text', text);
+      lines[j].textContent = '';
+      var run = el('span', 'run', lines[j]);
+      run.style.webkitAnimationDuration = run.style.animationDuration = cycle / MARQUEE_SPEED + 's';
+      for (var k = 0; k < 2; k++) el('span', '', run, text).style.paddingRight = cycle - widths[j] + 'px';
+    }
+    setClass(card, 'marquee', true);
   }
 
   var bgUrl = null, bgFront = 'bgA';
@@ -1217,12 +1258,18 @@
 
   // MARK: - Opening things
 
-  function launcher(id, name) {
+  function launcher(id, name, params) {
     return function () {
-      TV.launch(id, null, function (ok) {
+      TV.launch(id, params || null, function (ok) {
         if (!ok) toast(trf("Couldn't open {app}.", {app: name || id}));
       });
     };
+  }
+
+  // Litefin (LG) opens a title from its TMDB id: the library's page, else Seerr's to request it.
+  function pickParams(p, app) {
+    if (p.app !== 'jellyfin' || !/litefin/i.test(app.id)) return null;
+    return {tmdbId: p.id, mediaType: p.kind, title: p.title || ''};
   }
 
   function tvSettings() {
@@ -1239,14 +1286,14 @@
   function activate() {
     switch (st.zone) {
       case Z.TOP:
-        if (st.top < 3) return;
-        if (st.top === 3) { var live = liveTV(); if (live) launcher(live.id, tr('Live TV'))(); }
-        else if (st.top === 4) { st.zone = Z.SHELF; openDrawer(); st.drawer = 1 < drawerInputs ? 1 : 0; updateFocus(); }
+        if (st.top < NT) return;
+        if (st.top === NT) { var live = liveTV(); if (live) launcher(live.id, tr('Live TV'))(); }
+        else if (st.top === NT + 1) { st.zone = Z.SHELF; openDrawer(); st.drawer = 1 < drawerInputs ? 1 : 0; updateFocus(); }
         else openSettings();
         return;
       case Z.CARDS:
         var p = cards[st.card], app = p && Data.appFor(p.app);
-        if (app) launcher(app.id, app.title)();
+        if (app) launcher(app.id, app.title, pickParams(p, app))();
         return;
       case Z.SHELF:
         if (shelf[st.shelf]) launcher(shelf[st.shelf].id, shelf[st.shelf].title)();
@@ -1292,7 +1339,7 @@
         else if (dy > 0) { openDrawer(); return; }
         else if (dy < 0) {
           if (cards.length) { st.zone = Z.CARDS; st.card = nearest(cardNodes, centerX(tiles[st.shelf])); }
-          else { st.zone = Z.TOP; st.top = Data.hasKey() ? st.tab : 3; }
+          else { st.zone = Z.TOP; st.top = Data.hasKey() ? st.tab : NT; }
         }
         break;
       case Z.CARDS:
@@ -1302,10 +1349,10 @@
         break;
       case Z.TOP:
         if (dx) {
-          st.top = Math.max(Data.hasKey() ? 0 : 3, Math.min(5, st.top + dx));   // without the picks the tabs can't hold focus
-          if (st.top < 3) selectTab(st.top);   // as on Apple TV: focusing a tab selects it
+          st.top = Math.max(Data.hasKey() ? 0 : NT, Math.min(NT + 2, st.top + dx));   // without the picks the tabs can't hold focus
+          if (st.top < NT) selectTab(st.top);   // as on Apple TV: focusing a tab selects it
         } else if (dy > 0) {
-          if (cards.length) { st.zone = Z.CARDS; st.card = Math.min(cards.length - 1, st.top < 3 ? 0 : cards.length - 1); }
+          if (cards.length) { st.zone = Z.CARDS; st.card = Math.min(cards.length - 1, st.top < NT ? 0 : cards.length - 1); }
           else st.zone = Z.SHELF;
         }
         break;
@@ -1365,10 +1412,10 @@
       if (saverOn || (sheetOpen() !== (zone === Z.APPS || zone === Z.SETTINGS || zone === Z.EDIT || zone === Z.LANG || zone === Z.CITY || zone === Z.KEY || zone === Z.ABOUT))) return;
       if (zone === Z.DRAWER && st.zone !== Z.DRAWER) return;
       if (zone !== Z.DRAWER && st.zone === Z.DRAWER && zone !== Z.SHELF) return;
-      if (zone === Z.TOP && index < 3 && !Data.hasKey()) return;   // the tabs are hidden without the picks
+      if (zone === Z.TOP && index < NT && !Data.hasKey()) return;   // the tabs are hidden without the picks
       if (zone === Z.SHELF && st.zone === Z.DRAWER) closeDrawer();
       st.zone = zone;
-      if (zone === Z.TOP) { st.top = index; if (index < 3) selectTab(index); }
+      if (zone === Z.TOP) { st.top = index; if (index < NT) selectTab(index); }
       else if (zone === Z.CARDS) st.card = index;
       else if (zone === Z.SHELF) st.shelf = index;
       else if (zone === Z.DRAWER) st.drawer = index;
@@ -1471,7 +1518,7 @@
     if (!saverOn) return false;
     var app = ok && saverPick && Prefs.saverWatch() && Data.appFor(saverPick.app);
     hideSaver();
-    if (app) launcher(app.id, app.title)();
+    if (app) launcher(app.id, app.title, pickParams(saverPick, app))();
     return true;
   }
 

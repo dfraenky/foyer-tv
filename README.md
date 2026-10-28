@@ -15,6 +15,14 @@ Open source. Built with Claude Code. One button to undo.
 
 </div>
 
+> **This fork: a lite version for LG OLED.** Small changes to [Free My TV](https://github.com/simbasjungles/free-my-tv), tested on an LG OLED C1 (webOS 6.5.3, firmware 03.53.45). It keeps the LG app from upstream and adds, all optional in `config.properties`:
+>
+> - **Jellyfin, Litefin and Seerr.** Trending titles in your Jellyfin library and its newest join the picks (`jellyfin_url`, `jellyfin_key`). With `picks_from=jellyfin` the picks are what's popular today: in your library they open [Litefin](https://github.com/MoazSalem/litefin) (or Jellyfin), the rest open Litefin to request them through its Seerr integration. With a Litefin build that takes launch parameters ([MoazSalem/litefin#558](https://github.com/MoazSalem/litefin/pull/558)), a pick opens on its own page.
+> - **Anime.** `anime_tab=true` adds an Anime tab, and anime among the picks in Explore: in Jellyfin, on Crunchyroll, or to request.
+> - **Smooth on the C1.** It draws the page at twice its size: `performance=auto` turns shadows and animations off there (20 fps before, 58 now); `calm` and `full` are there too.
+> - **Narrow cards.** `hero_card=false` keeps every pick narrow; the focused one shows its app first, and a title or line that doesn't fit runs like a conveyor.
+> - Sharper Crunchyroll, Spotify and YouTube logos on the shelf, and Litefin's on black.
+
 ## What you get
 
 - **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
@@ -144,6 +152,10 @@ The first values come from `config.properties`, created by the first build (Goog
 | `tmdb_region` | Your country (two letters): which titles are on which app | `US` |
 | `watchmode_key` | Optional, free [Watchmode](https://api.watchmode.com/) key: a pick opens the title's page in its app | empty |
 | `plex_url` and `plex_token` | Optional, your Plex server's `plex.direct` address and token: its newest titles join the picks and open on their page | empty |
+| `jellyfin_url` and `jellyfin_key` | Optional, your Jellyfin server's address and an API key: trending titles in your library and its newest ones join the picks and open Jellyfin. LG and Samsung only | empty |
+| `picks_from` | `all`, or `jellyfin`: the picks are what's popular today, all opening Jellyfin (Litefin when installed), tagged "Jellyfin" when in your library and "Seerr" otherwise. LG and Samsung only | `all` |
+| `anime_tab` | `true` adds an Anime tab: the newest trending anime, opening Jellyfin when it's in your library, Crunchyroll when it's there, otherwise Jellyfin's app to request it (Seerr). LG and Samsung only | `false` |
+| `performance` | `auto`, `full`, `calm` (only movement animates) or `lite` (no shadows or animations). LG and Samsung only | `auto` |
 | `latitude`, `longitude` | Your city, for the weather and the sunset | New York |
 | `city` | The name on the weather card | `Weather` |
 | `hide_animation` | Leave cartoons and anime out of the picks | `false` |
@@ -187,6 +199,17 @@ python3 tools/photos.py <TV IP> beach.jpg hills.jpg Holidays/
 ```
 
 They land in the app's own folder on the TV (no permission needed); on Android 11, which keeps adb out of other apps' folders, they go through Free My TV itself. The next time the home screen, the screensaver or Free My TV's settings open, the app imports each one: turned upright, cropped to 16:9, resized for the TV and saved without its GPS and other tags; what was sent is then deleted. The screensaver shows them in the order you sent them, instead of the picks' photos; without a TMDB key, one of them is the home screen's background, a new one every hour. *Home Settings* → *My Photos*: the arrows turn them on or off, OK removes them. Up to 100; JPEG, PNG and WebP, and HEIC on Android 9 and newer.
+
+### Your Jellyfin library (optional, LG and Samsung)
+
+Set `jellyfin_url` (the server's address up to the port, like `http://192.168.1.20:8096`) and `jellyfin_key` (Jellyfin's *Dashboard → API Keys → +*) in `config.properties`, and your library joins the picks, tagged "Jellyfin":
+
+- **Trending in your library.** What's trending this week (the first three pages of TMDB's list) that's on your server shows among the picks, even when no streaming app has it.
+- **Your newest.** The latest six movies and six shows added to the server, with TMDB's photos.
+
+With `picks_from=jellyfin`, the picks leave the streaming apps out: they are what's popular on TMDB today, plus your newest. What's in your library is tagged "Jellyfin"; the rest "Seerr", to request in [Litefin](https://github.com/MoazSalem/litefin), a Jellyfin client with Seerr built in. Where Litefin is installed, the picks open it instead of the official Jellyfin app.
+
+A title that's both on your server and on a streaming app opens Jellyfin. Selecting one opens the Jellyfin app (it can't be opened on a title from outside). Only titles Jellyfin matched with TMDB (it does by default) can join. *Home Settings → Picks from* has a Jellyfin switch. If the server can't be reached, the other picks load as usual. The API key gives full access to your server and is built into the app on the TV: keep it private.
 
 ### Your Plex library (optional)
 

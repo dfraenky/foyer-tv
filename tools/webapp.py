@@ -15,7 +15,8 @@ import translate  # noqa: E402  (the catalogues and the keys the web app uses)
 
 GENERIC = {'tmdbKey': '', 'tmdbRegion': '', 'latitude': '', 'longitude': '', 'city': '', 'language': 'auto',
            'currency': '', 'temperature': 'auto', 'theme': 'auto', 'showCrypto': True, 'hideAnimation': False, 'hideApps': [],
-           'shelfApps': [], 'drawerFirst': False}
+           'shelfApps': [], 'drawerFirst': False, 'jellyfinUrl': '', 'jellyfinKey': '',
+           'picksFrom': 'all', 'performance': 'auto', 'animeTab': False, 'heroCard': True}
 
 
 def config_from_args(args):
@@ -51,6 +52,12 @@ def read_config(path):
             sys.exit('config.properties: %s must be a number (got "%s")' % (key, v))
         return v
 
+    def choice(key, options):
+        v = (values.get(key, '') or options[0]).lower()
+        if v not in options:
+            sys.exit('config.properties: %s must be one of %s (got "%s")' % (key, ', '.join(options), v))
+        return v
+
     return {
         'tmdbKey': values.get('tmdb_key', ''),
         'tmdbRegion': values.get('tmdb_region', 'US') or 'US',
@@ -66,7 +73,21 @@ def read_config(path):
         'hideApps': [s.strip() for s in values.get('hide_apps', '').split(',') if s.strip()],
         'shelfApps': [s.strip() for s in values.get('shelf_apps', '').split(',') if s.strip()],
         'drawerFirst': values.get('drawer_first', 'false').lower() == 'true',
+        'jellyfinUrl': jellyfin_url(values.get('jellyfin_url', '')),
+        'jellyfinKey': values.get('jellyfin_key', ''),
+        'picksFrom': choice('picks_from', ('all', 'jellyfin')),
+        'performance': choice('performance', ('auto', 'full', 'calm', 'lite')),
+        'animeTab': values.get('anime_tab', 'false').lower() == 'true',
+        'heroCard': values.get('hero_card', 'true').lower() != 'false',
     }
+
+
+def jellyfin_url(v):
+    """The Jellyfin server's address, up to the port (http or https), or '' for none."""
+    v = v.rstrip('/')
+    if v and not re.match(r'^https?://[^/\s]+$', v):
+        sys.exit('config.properties: jellyfin_url must look like http://192.168.1.20:8096 (got "%s")' % v)
+    return v
 
 
 def coins():

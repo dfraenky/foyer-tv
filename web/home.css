@@ -290,8 +290,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   -webkit-transition: opacity 0.3s;
   transition: opacity 0.3s;
 }
-.card.wide .meta { opacity: 1; }
+.card.wide .meta, .no-hero .card.focus .meta { opacity: 1; }
 .card.edge .name, .card.edge .meta { visibility: hidden; }
+/* The conveyor (home.js, marquee): the line holds its text twice, so half the run's width is one full round. */
+.card.marquee [data-text] { width: 100%; text-overflow: clip; }
+.card .run { display: inline-block; -webkit-animation: conveyor linear 1s 1s infinite; animation: conveyor linear 1s 1s infinite; }
+@-webkit-keyframes conveyor { from { -webkit-transform: translateX(0); } to { -webkit-transform: translateX(-50%); } }
+@keyframes conveyor { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .night .card .img { background-color: #2C2C2E; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.32); }
 .night .card .name { color: #F5F5F7; }
 .night .card .meta { color: rgba(245, 245, 247, 0.62); }
@@ -598,3 +603,5 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* Tizen 2 and 1 GB TVs (see tv.js): no shadows or animations; their GPUs can't keep up while the focus moves. */
 .lite * { box-shadow: none !important; -webkit-transition: none !important; transition: none !important; }
+/* performance=calm (see tv.js): only movement and fades animate, shadows and colors change at once. */
+.calm * { -webkit-transition-property: -webkit-transform, opacity, visibility !important; transition-property: transform, opacity, visibility !important; }

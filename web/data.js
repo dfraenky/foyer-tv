@@ -290,23 +290,32 @@ var Data = (function () {
     ['apple tv', 'appletv', /appletv|apple\.tv/, /apple tv/i, 'Apple TV'],
     ['hotstar', 'hotstar', /hotstar/, /hotstar/i, 'JioHotstar'],
     ['crunchyroll', 'crunchyroll', /crunchyroll/, /crunchyroll/i, 'Crunchyroll'],
-    ['now tv', 'now', /nowtv|now\.tv/, /^now( tv)?$/i, 'NOW']
+    ['now tv', 'now', /nowtv|now\.tv/, /^now( tv)?$/i, 'NOW'],
+    ['jellyfin', 'jellyfin', /jellyfin|litefin/i, /jellyfin|litefin/i, 'Jellyfin']   // the person's own server (below), not on TMDB
   ];
 
   var installed = [];   // the TV's apps, from TV.apps()
 
   /** A service whose app is on the TV and that the person hasn't switched off in Home Settings (Picks from). */
-  function usable(key) { return !!appFor(key) && !Prefs.serviceOff(key); }
+  function usable(key) {
+    if (JF_ONLY ? key !== 'jellyfin' && key !== 'crunchyroll' : key === 'jellyfin' && !JF_URL) return false;
+    return !!appFor(key) && !Prefs.serviceOff(key);
+  }
 
   /** The streaming services whose app is on this TV, as {key, name}, for Home Settings. */
   function services() {
     var out = [];
-    for (var s = 0; s < SERVICES.length; s++) if (appFor(SERVICES[s][1])) out.push({key: SERVICES[s][1], name: SERVICES[s][4]});
+    for (var s = 0; s < SERVICES.length; s++) {
+      var k = SERVICES[s][1];
+      if (appFor(k) && (JF_ONLY ? k === 'jellyfin' || (k === 'crunchyroll' && CONFIG.animeTab) : k !== 'jellyfin' || JF_URL)) out.push({key: k, name: SERVICES[s][4]});
+    }
     return out;
   }
 
   /** The installed app for a service key, or null. */
   function appFor(key) {
+    // Litefin (a Jellyfin client with Seerr built in) over the official Jellyfin app, when both are there.
+    for (var l = 0; key === 'jellyfin' && l < installed.length; l++) if (/litefin/i.test(installed[l].id)) return installed[l];
     for (var s = 0; s < SERVICES.length; s++) {
       if (SERVICES[s][1] !== key) continue;
       for (var i = 0; i < installed.length; i++) {
@@ -343,11 +352,43 @@ var Data = (function () {
     }, key);
   }
 
+  // MARK: - Jellyfin
+
+  // The person's own server (jellyfin_url and jellyfin_key): what's in it, by TMDB id, and its newest titles. A pick in
+  // the library opens Jellyfin, even when a streaming app has it too. The library isn't stored, only fetched with the list.
+  // With picks_from=jellyfin the picks are what's popular today, all opening Jellyfin's app: what the library has, and
+  // the rest to request there (Litefin has Seerr built in), tagged "Seerr".
+  var JF_URL = CONFIG.jellyfinUrl || '', JF_KEY = CONFIG.jellyfinKey || '', JF_ONLY = CONFIG.picksFrom === 'jellyfin';
+  var library = null, newest = {movie: [], tv: []};
+
+  function inLibrary(p) { return !!(library && library[p.kind][String(p.id)]); }
+
+  /** The library's movies and shows, newest first (a few MB at most, every 6 hours); done() also when it fails. */
+  function fetchLibrary(done) {
+    if (!JF_URL || !JF_KEY) { done(); return; }
+    var auth = 'MediaBrowser Client="Free My TV", Device="TV", DeviceId="freemytv", Version="1", Token="' + JF_KEY + '"';
+    get(JF_URL + '/Items?Recursive=true&IncludeItemTypes=Movie,Series&Fields=ProviderIds&SortBy=DateCreated&SortOrder=Descending'
+        + '&EnableImages=false&EnableUserData=false', {Authorization: auth, Accept: 'application/json'}, function (err, res) {
+      if (err || !res || !res.Items) { done(); return; }
+      var lib = {movie: {}, tv: {}}, fresh = {movie: [], tv: []};
+      for (var i = 0; i < res.Items.length; i++) {
+        var it = res.Items[i], id = it.ProviderIds && (it.ProviderIds.Tmdb || it.ProviderIds.tmdb);
+        var kind = it.Type === 'Series' ? 'tv' : 'movie';
+        if (!id || lib[kind][id]) continue;
+        lib[kind][id] = true;
+        if (fresh[kind].length < 6) fresh[kind].push({id: +id, kind: kind, title: it.Name || '', backdrop: '', poster: '', meta: '', app: null, detailed: false, jellyfin: true});
+      }
+      library = lib;
+      newest = fresh;
+      done();
+    });
+  }
+
   var cache = stored('recs') || {};
-  var picks = cache.picks || [], listAt = cache.listAt || 0, period = cache.period, listLang = cache.lang || '', stamp = cache.stamp || '';
+  var picks = cache.picks || [], anime = cache.anime || [], listAt = cache.listAt || 0, period = cache.period, listLang = cache.lang || '', stamp = cache.stamp || '';
   var fetchingRecs = false, failedAt = 0, recsError = '';
 
-  function saveRecs() { store('recs', {picks: picks, listAt: listAt, period: period, lang: listLang, stamp: stamp}); }
+  function saveRecs() { store('recs', {picks: picks, anime: anime, listAt: listAt, period: period, lang: listLang, stamp: stamp}); }
 
   function hourPeriod(d) {
     var h = d.getHours();
@@ -357,7 +398,7 @@ var Data = (function () {
   function sourceStamp() {
     var s = KEY.length + ':' + KEY.slice(-6) + ':' + REGION + (CONFIG.hideAnimation ? ':no-animation' : '');
     for (var i = 0; i < SERVICES.length; i++) s += usable(SERVICES[i][1]) ? '1' : '0';
-    return s;
+    return s + (JF_URL ? ':' + JF_URL : '') + (JF_ONLY ? ':jellyfin-only' : '') + (CONFIG.animeTab ? ':anime' : '');
   }
 
   function franchise(title) {
@@ -367,12 +408,23 @@ var Data = (function () {
   }
 
   /** This hour's picks (Prefs.cards()): movies ("movie"), shows ("tv") or both (null). */
+  /** Explore with the anime among the picks: one after every three. */
+  function explore() {
+    if (!anime.length) return picks;
+    var out = [];
+    for (var i = 0, a = 0; i < picks.length; i++) {
+      out.push(picks[i]);
+      if (i % 3 === 2 && a < anime.length) out.push(anime[a++]);
+    }
+    return out;
+  }
+
   function now(kind) {
-    var list = [];
+    var list = [], from = kind === 'anime' ? anime : kind === null ? explore() : picks;
     if (!KEY) return list;
-    for (var i = 0; i < picks.length; i++) {
-      var p = picks[i];
-      if ((kind === null || kind === p.kind) && (!p.detailed || (p.app && usable(p.app)))) list.push(p);
+    for (var i = 0; i < from.length; i++) {
+      var p = from[i];
+      if ((kind === null || kind === 'anime' || kind === p.kind) && (!p.detailed || (p.app && usable(p.app)))) list.push(p);
     }
     if (!list.length) return list;
     var hour = Math.floor(Date.now() / 3600000), out = [], seen = {}, n = Prefs.cards();
@@ -443,11 +495,19 @@ var Data = (function () {
       }
       var wp = o['watch/providers'], here = wp && wp.results && wp.results[REGION], flat = here && here.flatrate;
       p.app = null;
-      for (var i = 0; flat && i < flat.length && !p.app; i++) {
+      var mine = p.jellyfin || inLibrary(p);
+      if (mine && usable('jellyfin')) { p.app = 'jellyfin'; p.service = 'Jellyfin'; }
+      // An anime: in Jellyfin, else on Crunchyroll, else to request in Jellyfin's app (Seerr).
+      for (var c = 0; p.anime && !p.app && flat && c < flat.length; c++) {
+        var cr = service(flat[c].provider_name, flat[c].provider_id);
+        if (cr && cr[1] === 'crunchyroll' && usable('crunchyroll')) { p.app = 'crunchyroll'; p.service = cr[4]; }
+      }
+      for (var i = 0; !JF_ONLY && flat && i < flat.length && !p.app; i++) {
         var s = service(flat[i].provider_name, flat[i].provider_id);
         if (s && usable(s[1])) { p.app = s[1]; p.service = s[4]; }
       }
-      if (p.service && p.app) parts.push(p.service);
+      if (!p.app && (JF_ONLY || p.anime) && usable('jellyfin')) { p.app = 'jellyfin'; p.service = 'Seerr'; }
+      if (p.service && p.app) parts.unshift(p.service);   // where it opens first: the line is cut on narrow cards
       p.meta = parts.join(' · ');
       title(p, o, function () {
         p.detailed = true;
@@ -503,6 +563,57 @@ var Data = (function () {
     })();
   }
 
+  /**
+   * The week's trending of one kind (today's, Jellyfin only): the first 16 (20), and with Jellyfin, deeper (3 pages)
+   * what's in its library.
+   */
+  function trending(kind, jf, done) {
+    var candidates = [], page = 1;
+    (function next() {
+      tmdb('/trending/' + kind + (JF_ONLY ? '/day' : '/week') + '?page=' + page + '&language=' + lang(), function (e, r) {
+        for (var j = 0; !e && j < r.results.length; j++) {
+          var o = r.results[j], top = page === 1 && j < (JF_ONLY ? 20 : 16);
+          if (top || (jf && inLibrary({kind: kind, id: o.id}))) addPick(candidates, o, kind);
+        }
+        if (!e && jf && page++ < 3) next(); else done(candidates);
+      });
+    })();
+  }
+
+  /**
+   * The Anime tab: Japanese animation that's popular and new (shows on the air in the last 60 days, movies of the last
+   * year), each opening where it is (details: Jellyfin, Crunchyroll, else Seerr). Kept as it was when TMDB fails.
+   */
+  function fetchAnime(done) {
+    var base = '&with_genres=' + ANIMATION + '&with_original_language=ja&sort_by=popularity.desc&include_adult=false&language=' + lang();
+    var found = {movie: [], tv: []};
+    tmdb('/discover/tv?air_date.gte=' + day(-60) + '&air_date.lte=' + day(0) + '&vote_count.gte=5' + base, function (e1, r1) {
+      for (var i = 0; !e1 && i < r1.results.length; i++) addAnime(found.tv, r1.results[i], 'tv');
+      tmdb('/discover/movie?primary_release_date.gte=' + day(-365) + '&primary_release_date.lte=' + day(0) + '&vote_count.gte=10' + base, function (e2, r2) {
+        for (var j = 0; !e2 && j < r2.results.length && j < 8; j++) addAnime(found.movie, r2.results[j], 'movie');
+        var todo = found.tv.concat(found.movie), kept = {movie: [], tv: []};
+        each(todo, function (p, n) {
+          details(p, function (de) { if (!de && p.app) kept[p.kind].push(p); n(); });
+        }, function () {
+          var list = [], seen = {};
+          // Mostly shows: two of them to each movie.
+          for (var t = 0, m = 0; (t < kept.tv.length || m < kept.movie.length) && list.length < 24;) {
+            if (t < kept.tv.length) list.push(kept.tv[t++]);
+            if (t < kept.tv.length && list.length < 24) list.push(kept.tv[t++]);
+            if (m < kept.movie.length && list.length < 24) list.push(kept.movie[m++]);
+          }
+          if (list.length) anime = list.filter(function (x) { return !seen[keyOf(x)] && (seen[keyOf(x)] = true); });
+          done();
+        });
+      });
+    });
+  }
+
+  function addAnime(list, o, kind) {
+    if (!o.backdrop_path) return;
+    list.push({id: o.id, kind: kind, title: kind === 'movie' ? o.title : o.name, backdrop: o.backdrop_path, poster: o.poster_path || '', meta: '', app: null, detailed: false, anime: true});
+  }
+
   function fetchList(done) {
     tmdb('/watch/providers/movie?language=' + lang() + '&watch_region=' + REGION, function (err, res) {
       if (err) { done(err); return; }
@@ -511,34 +622,46 @@ var Data = (function () {
         var s = service(res.results[i].provider_name, res.results[i].provider_id);
         if (s && usable(s[1])) ids.push(res.results[i].provider_id);
       }
-      if (!ids.length) { done(new Error("none of the TV's streaming apps are on TMDB (or switched on in Picks from)")); return; }
+      if (JF_ONLY) ids = [];   // Crunchyroll is there only for the anime
+      var jf = usable('jellyfin') && !!library;
+      if (JF_ONLY && !usable('jellyfin')) { done(new Error('no Jellyfin app on the TV (or switched off in Picks from)')); return; }
+      if (!ids.length && !jf && !JF_ONLY) { done(new Error("none of the TV's streaming apps are on TMDB (or switched on in Picks from)")); return; }
       var common = '&language=' + lang() + '&watch_region=' + REGION + '&with_watch_monetization_types=flatrate&include_adult=false'
           + '&sort_by=popularity.desc&with_watch_providers=' + encodeURIComponent(ids.join('|'))
           + (CONFIG.hideAnimation ? '&without_genres=' + ANIMATION : '');
-      var hot = {movie: [], tv: []}, fresh = {movie: [], tv: []};
+      var hot = {movie: [], tv: []}, mine = {movie: [], tv: []}, fresh = {movie: [], tv: []};
       each(['movie', 'tv'], function (kind, next) {
-        tmdb('/trending/' + kind + '/week?language=' + lang(), function (e, r) {
-          var candidates = [];
-          for (var j = 0; !e && j < r.results.length && j < 16; j++) addPick(candidates, r.results[j], kind);
-          // Trending is only kept when it's on one of the TV's apps: the details say where.
+        trending(kind, jf, function (candidates) {
+          // Trending is only kept when it's on one of the TV's apps (or in Jellyfin): the details say where.
           each(candidates, function (p, n) {
             details(p, function (de) { if (!de && p.app) hot[kind].push(p); n(); });
           }, next);
         });
       }, function () {
-        tmdb('/discover/movie?vote_count.gte=30&primary_release_date.gte=' + day(-365) + '&primary_release_date.lte=' + day(0) + common, function (e1, r1) {
-          for (var j = 0; !e1 && j < r1.results.length; j++) addPick(fresh.movie, r1.results[j], 'movie');
-          tmdb('/discover/tv?vote_count.gte=20&air_date.gte=' + day(-90) + '&air_date.lte=' + day(0) + common, function (e2, r2) {
-            for (var k = 0; !e2 && k < r2.results.length; k++) addPick(fresh.tv, r2.results[k], 'tv');
-            var list = [], seen = {};
-            alternate(list, seen, hot.movie, hot.tv, 24);
-            alternate(list, seen, fresh.movie, fresh.tv, 24);
-            if (!list.length) { done(new Error('TMDB returned no recommendations')); return; }
-            picks = list;
-            done(null);
+        // Jellyfin's newest movies and shows, with TMDB's photos.
+        var newer = jf ? newest.movie.concat(newest.tv) : [];
+        each(newer, function (p, n) {
+          details(p, function (de) { if (!de && p.backdrop && p.app) mine[p.kind].push(p); n(); });
+        }, function () {
+          if (!ids.length) { finish(); return; }
+          tmdb('/discover/movie?vote_count.gte=30&primary_release_date.gte=' + day(-365) + '&primary_release_date.lte=' + day(0) + common, function (e1, r1) {
+            for (var j = 0; !e1 && j < r1.results.length; j++) addPick(fresh.movie, r1.results[j], 'movie');
+            tmdb('/discover/tv?vote_count.gte=20&air_date.gte=' + day(-90) + '&air_date.lte=' + day(0) + common, function (e2, r2) {
+              for (var k = 0; !e2 && k < r2.results.length; k++) addPick(fresh.tv, r2.results[k], 'tv');
+              finish();
+            });
           });
         });
       });
+      function finish() {
+        var list = [], seen = {};
+        alternate(list, seen, hot.movie, hot.tv, jf ? 18 : 24);   // room for Jellyfin's newest
+        alternate(list, seen, mine.movie, mine.tv, 24);
+        alternate(list, seen, fresh.movie, fresh.tv, 24);
+        if (!list.length) { done(new Error('TMDB returned no recommendations')); return; }
+        picks = list;
+        if (CONFIG.animeTab) fetchAnime(function () { done(null); }); else done(null);
+      }
     });
   }
 
@@ -563,17 +686,21 @@ var Data = (function () {
       var todo = all().filter(function (x) { return !x.detailed; });
       each(todo, function (x, next) { details(x, function () { next(); }); }, function () { finish(null); });
     }
-    if (stale) {
-      fetchList(function (err) {
-        if (err) { finish(err); return; }
-        listAt = Date.now();
-        period = p;
-        listLang = I18N.lang;
+    // The Jellyfin library with every new list, and once after a start (the details ask whether a title is in it).
+    function withLibrary(then) { if (stale || (JF_URL && !library)) fetchLibrary(then); else then(); }
+    withLibrary(function () {
+      if (stale) {
+        fetchList(function (err) {
+          if (err) { finish(err); return; }
+          listAt = Date.now();
+          period = p;
+          listLang = I18N.lang;
+          detailWanted();
+        });
+      } else {
         detailWanted();
-      });
-    } else {
-      detailWanted();
-    }
+      }
+    });
   }
 
   /** This hour's picks for the three tabs, without repeats (the screensaver shows them too). */
