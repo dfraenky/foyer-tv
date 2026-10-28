@@ -200,10 +200,11 @@ var TV = (function () {
   // Newer webOS (11 tested) denies listLaunchPoints to Developer Mode apps, but still answers getAppLoadStatus for
   // one app id: these are checked one by one there. Their icons can't be read, so they get our logo where web/icons
   // has one, as on Samsung, and otherwise their name on the brand's color: [id, title, logo, color].
-  // LG icons replaced with our logo: YouTube's is the play button alone, ours the whole wordmark; Crunchyroll's and
-  // Spotify's are 150 px bitmaps, blurry on a tile drawn at twice its size, ours vectors.
-  var LG_ICONS = {'youtube.leanback.v4': 'icons/youtube.png', 'com.crunchyroll.webapp': 'icons/crunchyroll.svg',
-    'spotify-beehive': 'icons/spotify-wordmark.svg'};
+  // LG icons replaced with our logo, in both lists: Litefin's is the fin alone, ours has its name; YouTube's is the
+  // play button alone, ours the whole wordmark; Crunchyroll's and Spotify's are 150 px bitmaps, blurry on a tile drawn
+  // at twice its size, ours vectors.
+  var LG_ICONS = {'org.litefin.app': 'icons/litefin.png', 'youtube.leanback.v4': 'icons/youtube.png',
+    'com.crunchyroll.webapp': 'icons/crunchyroll.svg', 'spotify-beehive': 'icons/spotify-wordmark.svg'};
 
   var KNOWN = [
     ['netflix', 'Netflix', 'icons/netflix.svg'], ['youtube.leanback.v4', 'YouTube', 'icons/youtube.png'],
@@ -226,7 +227,7 @@ var TV = (function () {
     setTimeout(finish, 5000);   // an id that never answers doesn't hold the rest
     KNOWN.forEach(function (k, i) {
       luna('luna://com.webos.applicationManager/getAppLoadStatus', {appId: k[0]}, function (res) {
-        if (res && res.exist) found[i] = {id: k[0], title: k[1], icon: k[2] || '', color: k[3] || ''};
+        if (res && res.exist) found[i] = {id: k[0], title: k[1], icon: LG_ICONS[k[0]] || k[2] || '', color: k[3] || ''};
         if (--left === 0) finish();
       });
     });

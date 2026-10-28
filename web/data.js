@@ -398,7 +398,7 @@ var Data = (function () {
   function sourceStamp() {
     var s = KEY.length + ':' + KEY.slice(-6) + ':' + REGION + (CONFIG.hideAnimation ? ':no-animation' : '');
     for (var i = 0; i < SERVICES.length; i++) s += usable(SERVICES[i][1]) ? '1' : '0';
-    return s + (JF_URL ? ':' + JF_URL : '') + (JF_ONLY ? ':jellyfin-only' : '') + (CONFIG.animeTab ? ':anime' : '');
+    return s + (JF_URL ? ':' + JF_URL : '') + (JF_ONLY ? ':jellyfin-only' : '') + (CONFIG.animeTab ? ':anime-season' : '');
   }
 
   function franchise(title) {
@@ -584,26 +584,45 @@ var Data = (function () {
    * The Anime tab: Japanese animation that's popular and new (shows on the air in the last 60 days, movies of the last
    * year), each opening where it is (details: Jellyfin, Crunchyroll, else Seerr). Kept as it was when TMDB fails.
    */
+  // The anime season running now (Jan, Apr, Jul, Oct); in its first three weeks the last one too.
+  function seasonStart() {
+    var d = new Date(), m = d.getMonth() - d.getMonth() % 3, start = new Date(d.getFullYear(), m, 1);
+    if (d - start < 21 * 86400000) start = new Date(d.getFullYear(), m - 3, 1);
+    return Math.floor((start - d) / 86400000);
+  }
+
+  function japanese(o) { return o.original_language === 'ja' && animated(o); }
+
+  // Anime: what is trending this week first, then the popular shows airing this season.
   function fetchAnime(done) {
     var base = '&with_genres=' + ANIMATION + '&with_original_language=ja&sort_by=popularity.desc&include_adult=false&language=' + lang();
-    var found = {movie: [], tv: []};
-    tmdb('/discover/tv?air_date.gte=' + day(-60) + '&air_date.lte=' + day(0) + '&vote_count.gte=5' + base, function (e1, r1) {
-      for (var i = 0; !e1 && i < r1.results.length; i++) addAnime(found.tv, r1.results[i], 'tv');
-      tmdb('/discover/movie?primary_release_date.gte=' + day(-365) + '&primary_release_date.lte=' + day(0) + '&vote_count.gte=10' + base, function (e2, r2) {
-        for (var j = 0; !e2 && j < r2.results.length && j < 8; j++) addAnime(found.movie, r2.results[j], 'movie');
-        var todo = found.tv.concat(found.movie), kept = {movie: [], tv: []};
-        each(todo, function (p, n) {
-          details(p, function (de) { if (!de && p.app) kept[p.kind].push(p); n(); });
-        }, function () {
-          var list = [], seen = {};
-          // Mostly shows: two of them to each movie.
-          for (var t = 0, m = 0; (t < kept.tv.length || m < kept.movie.length) && list.length < 24;) {
-            if (t < kept.tv.length) list.push(kept.tv[t++]);
-            if (t < kept.tv.length && list.length < 24) list.push(kept.tv[t++]);
-            if (m < kept.movie.length && list.length < 24) list.push(kept.movie[m++]);
-          }
-          if (list.length) anime = list.filter(function (x) { return !seen[keyOf(x)] && (seen[keyOf(x)] = true); });
-          done();
+    var found = {movie: [], tv: []}, pages = ['/trending/tv/week?page=1', '/trending/tv/week?page=2', '/trending/tv/week?page=3', '/trending/movie/week?page=1', '/trending/movie/week?page=2'];
+    each(pages, function (path, n) {
+      tmdb(path + '&language=' + lang(), function (e, r) {
+        var kind = path.indexOf('/tv/') > 0 ? 'tv' : 'movie';
+        for (var i = 0; !e && i < r.results.length; i++) if (japanese(r.results[i])) addAnime(found[kind], r.results[i], kind);
+        n();
+      });
+    }, function () {
+      tmdb('/discover/tv?air_date.gte=' + day(seasonStart()) + '&air_date.lte=' + day(7) + '&vote_count.gte=5' + base, function (e1, r1) {
+        for (var i = 0; !e1 && i < r1.results.length; i++) addAnime(found.tv, r1.results[i], 'tv');
+        tmdb('/discover/movie?primary_release_date.gte=' + day(-365) + '&primary_release_date.lte=' + day(0) + '&vote_count.gte=10' + base, function (e2, r2) {
+          for (var j = 0; !e2 && j < r2.results.length && found.movie.length < 8; j++) addAnime(found.movie, r2.results[j], 'movie');
+          var seen = {}, todo = found.tv.concat(found.movie).filter(function (x) { return !seen[keyOf(x)] && (seen[keyOf(x)] = true); });
+          var kept = {movie: [], tv: []};
+          each(todo, function (p, n) {
+            details(p, function (de) { if (!de && p.app) kept[p.kind].push(p); n(); });
+          }, function () {
+            var list = [];
+            // Mostly shows: two of them to each movie.
+            for (var t = 0, m = 0; (t < kept.tv.length || m < kept.movie.length) && list.length < 24;) {
+              if (t < kept.tv.length) list.push(kept.tv[t++]);
+              if (t < kept.tv.length && list.length < 24) list.push(kept.tv[t++]);
+              if (m < kept.movie.length && list.length < 24) list.push(kept.movie[m++]);
+            }
+            if (list.length) anime = list;
+            done();
+          });
         });
       });
     });

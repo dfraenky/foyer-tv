@@ -17,7 +17,7 @@ Open source. Built with Claude Code. One button to undo.
 
 > **This fork: a lite version for LG OLED.** Small changes to [Free My TV](https://github.com/simbasjungles/free-my-tv), tested on an LG OLED C1 (webOS 6.5.3, firmware 03.53.45). It keeps the LG app from upstream and adds, all optional in `config.properties`:
 >
-> - **Jellyfin, Litefin and Seerr.** Trending titles in your Jellyfin library and its newest join the picks (`jellyfin_url`, `jellyfin_key`). With `picks_from=jellyfin` the picks are what's popular today: in your library they open [Litefin](https://github.com/MoazSalem/litefin) (or Jellyfin), the rest open Litefin to request them through its Seerr integration. With a Litefin build that takes launch parameters ([MoazSalem/litefin#558](https://github.com/MoazSalem/litefin/pull/558)), a pick opens on its own page.
+> - **Jellyfin, Litefin and Seerr.** Trending titles in your Jellyfin library and its newest join the picks (`jellyfin_url`, `jellyfin_key`). With `picks_from=jellyfin` the picks are what's popular today: in your library they open [Litefin](https://github.com/MoazSalem/litefin) (or Jellyfin), the rest open Litefin to request them through its Seerr integration. With a Litefin build that takes launch parameters ([MoazSalem/litefin#559](https://github.com/MoazSalem/litefin/pull/559)), a pick opens on its own page.
 > - **Anime.** `anime_tab=true` adds an Anime tab, and anime among the picks in Explore: in Jellyfin, on Crunchyroll, or to request.
 > - **Smooth on the C1.** It draws the page at twice its size: `performance=auto` turns shadows and animations off there (20 fps before, 58 now); `calm` and `full` are there too.
 > - **Narrow cards.** `hero_card=false` keeps every pick narrow; the focused one shows its app first, and a title or line that doesn't fit runs like a conveyor.
@@ -154,7 +154,7 @@ The first values come from `config.properties`, created by the first build (Goog
 | `plex_url` and `plex_token` | Optional, your Plex server's `plex.direct` address and token: its newest titles join the picks and open on their page | empty |
 | `jellyfin_url` and `jellyfin_key` | Optional, your Jellyfin server's address and an API key: trending titles in your library and its newest ones join the picks and open Jellyfin. LG and Samsung only | empty |
 | `picks_from` | `all`, or `jellyfin`: the picks are what's popular today, all opening Jellyfin (Litefin when installed), tagged "Jellyfin" when in your library and "Seerr" otherwise. LG and Samsung only | `all` |
-| `anime_tab` | `true` adds an Anime tab: the newest trending anime, opening Jellyfin when it's in your library, Crunchyroll when it's there, otherwise Jellyfin's app to request it (Seerr). LG and Samsung only | `false` |
+| `anime_tab` | `true` adds an Anime tab: this week's trending anime, then the season airing now, opening Jellyfin when it's in your library, Crunchyroll when it's there, otherwise Jellyfin's app to request it (Seerr). LG and Samsung only | `false` |
 | `performance` | `auto`, `full`, `calm` (only movement animates) or `lite` (no shadows or animations). LG and Samsung only | `auto` |
 | `latitude`, `longitude` | Your city, for the weather and the sunset | New York |
 | `city` | The name on the weather card | `Weather` |
