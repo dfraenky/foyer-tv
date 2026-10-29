@@ -303,5 +303,6 @@
  "{n} ms": "{n} ms",
  "{time} left": "encore {time}",
  "{version} is out: build it again": "La {version} est sortie : recompilez-la",
- "← → to move · OK to drop · Back to cancel": "← → déplacer · OK déposer · Retour annuler"
+ "← → to move · OK to drop · Back to cancel": "← → déplacer · OK déposer · Retour annuler",
+ "LG Home": "Accueil LG"
 }

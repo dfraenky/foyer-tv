@@ -22,6 +22,7 @@ Open source. Built with Claude Code. One button to undo.
 > - **Smooth on the C1.** It draws the page at twice its size: `performance=auto` turns shadows and animations off there (20 fps before, 58 now); `calm` and `full` are there too.
 > - **Narrow cards.** `hero_card=false` keeps every pick narrow; the focused one shows its app first, and a title or line that doesn't fit runs like a conveyor.
 > - Sharper Crunchyroll, Spotify and YouTube logos on the shelf, and Litefin's on black.
+> - **The home screen, on a rooted TV.** `python3 webos/install.py <IP> --root --launcher`: the Home key and closing an app come back to Free My TV ([how](#as-the-home-screen-on-a-rooted-lg-tv)).
 
 ## What you get
 
@@ -128,6 +129,18 @@ python3 webos/apps.py 192.168.1.50 && python3 webos/build.py && python3 webos/in
 ```
 
 Developer Mode lasts about 40 days: open the Developer Mode app now and then and press **EXTEND**. To remove Free My TV, run `python3 webos/install.py 192.168.1.50 --uninstall`.
+
+### As the home screen, on a rooted LG TV
+
+On a TV rooted with the [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel) (root SSH on, your key in it), Free My TV can take over from LG's home screen:
+```bash
+python3 webos/install.py 192.168.1.50 --root --launcher
+```
+- **Closing an app** comes back to Free My TV, and so does anything else that brings up LG's home screen. A small watcher started at boot (`webos/root/`, in `/var/lib/freemytv`) does it.
+- **The Home key** opens Free My TV, through [LG Input Hook](https://github.com/Simon34545/lginputhook) (install it from the Homebrew Channel and open it once). Without it, Home in an app shows LG's home screen for a moment, then Free My TV.
+- **LG's home screen** is still there: *LG Home* in Free My TV's drawer opens it and stays.
+
+`--no-launcher` gives Home and the closed apps back to LG's home screen. Tested on an LG OLED C1 (webOS 6.5.3).
 
 ## Samsung TVs (Tizen)
 

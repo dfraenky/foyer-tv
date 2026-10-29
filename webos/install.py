@@ -4,6 +4,18 @@
     python3 webos/install.py 192.168.1.50              # install or update, then open it
     python3 webos/install.py 192.168.1.50 --uninstall  # remove it
 
+A rooted TV (webosbrew's Homebrew Channel) takes it over root SSH (port 22) instead, with --root, and can make it the
+home screen:
+
+    python3 webos/install.py 192.168.1.50 --root                 # install or update as root
+    python3 webos/install.py 192.168.1.50 --root --launcher      # and make it the home screen
+    python3 webos/install.py 192.168.1.50 --root --no-launcher   # LG's home screen back
+
+As the home screen, the Home key opens Free My TV (through LG Input Hook, when it's installed), and so does closing an
+app: a watcher started at boot (webos/root) opens it whenever LG's home comes up, except when it was opened from Free
+My TV (its drawer has LG Home). Root SSH uses ~/.ssh/freemytv_webos_<IP> when that key is in the TV's authorized_keys,
+otherwise your own SSH key.
+
 Before the first install, on the TV: install "Developer Mode" from the LG Content Store, sign in with a free LG
 developer account (webostv.developer.lge.com), turn on Dev Mode Status (the TV restarts), then turn on Key Server.
 The app shows the TV's IP address and a passphrase.
@@ -28,8 +40,17 @@ IPK = os.path.join(ROOT, 'FreeMyTV-webos.ipk')
 with open(os.path.join(ROOT, 'webos', 'appinfo.json'), encoding='utf-8') as f:
     APP_ID = json.load(f)['id']
 TEMP = '/media/developer/temp/freemytv.ipk'
+ROOTED = '--root' in sys.argv
+USER = 'root' if ROOTED else 'prisoner'
 SSH_OPTS = ['-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=' + os.devnull, '-o', 'LogLevel=ERROR',
-            '-o', 'HostKeyAlgorithms=+ssh-rsa', '-o', 'PubkeyAcceptedKeyTypes=+ssh-rsa', '-p', '9922']
+            '-o', 'HostKeyAlgorithms=+ssh-rsa', '-o', 'PubkeyAcceptedKeyTypes=+ssh-rsa', '-p', '22' if ROOTED else '9922']
+if ROOTED:
+    SSH_OPTS += ['-o', 'BatchMode=yes']
+# On a rooted TV: the watcher, its boot hook, and the Home key in LG Input Hook (its uinput code on the Magic Remote).
+LAUNCHER_DIR = '/var/lib/freemytv'
+BOOT_HOOK = '/var/lib/webosbrew/init.d/60-freemytv'
+KEYBINDS = '/home/root/.config/lginputhook/keybinds.json'
+HOME_KEY = '773'
 
 
 def key_path(ip):
@@ -79,7 +100,7 @@ def fetch_key(ip):
 
 
 def ssh(ip, key, command, stdin=None, tty=False):
-    args = ['ssh'] + (['-tt'] if tty else []) + SSH_OPTS + ['-i', key, 'prisoner@' + ip, command]
+    args = ['ssh'] + (['-tt'] if tty else []) + SSH_OPTS + (['-i', key] if key else []) + [USER + '@' + ip, command]
     return subprocess.run(args, stdin=stdin, capture_output=True, text=stdin is None)
 
 
@@ -95,6 +116,36 @@ def luna(ip, key, uri, payload, replies=1, wait=20):
     return out
 
 
+def launcher(ip, key, on):
+    """Free My TV as the home screen of a rooted TV (on), or LG's again: the watcher, its boot hook, the Home key."""
+    # Input Hook's keybinds, merged with what's there: it reloads them on its own.
+    edit = ("var fs=require('fs'),f='%s';if(fs.existsSync(f)){var k=JSON.parse(fs.readFileSync(f,'utf8')||'{}');"
+            "%s;fs.writeFileSync(f,JSON.stringify(k,null,2))}") % (
+        KEYBINDS, "k['%s']={action:'launch',id:'%s'}" % (HOME_KEY, APP_ID) if on else
+        "if(k['%s']&&k['%s'].id==='%s')delete k['%s']" % (HOME_KEY, HOME_KEY, APP_ID, HOME_KEY))
+    if on:
+        here = os.path.join(ROOT, 'webos', 'root')
+        for src, dst in (('launcher.js', LAUNCHER_DIR + '/launcher.js'), ('60-freemytv', BOOT_HOOK)):
+            with open(os.path.join(here, src), 'rb') as f:
+                copy = ssh(ip, key, 'mkdir -p %s && cat > %s && chmod 755 %s' % (os.path.dirname(dst), dst, dst), stdin=f)
+            if copy.returncode != 0:
+                sys.exit('Couldn\'t copy %s to the TV.' % src)
+        ssh(ip, key, 'rm -f %s/off; %s' % (LAUNCHER_DIR, BOOT_HOOK))
+    else:
+        # The hook stops the watcher by its pid, then starts nothing with "off" there.
+        ssh(ip, key, 'touch %s/off 2>/dev/null; [ -x %s ] && %s; rm -f %s; rm -rf %s' % (
+            LAUNCHER_DIR, BOOT_HOOK, BOOT_HOOK, BOOT_HOOK, LAUNCHER_DIR))
+    ssh(ip, key, 'node -e "%s"' % edit)
+    hooked = ssh(ip, key, '[ -f %s ] && echo yes' % KEYBINDS).stdout.strip() == 'yes'
+    if on:
+        print('Free My TV is the home screen: closing an app comes back to it, and so does LG\'s home screen.')
+        print('The Home key opens it.' if hooked else 'For the Home key too, install LG Input Hook from the Homebrew '
+              'Channel, open it once, then run this again.')
+        print('LG\'s home screen is in Free My TV\'s drawer (LG Home). --no-launcher undoes all of it.')
+    else:
+        print('LG\'s home screen is back: the Home key and closing apps go there again.')
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     if not args or not re.match(r'^\d{1,3}(\.\d{1,3}){3}$', args[0]):
@@ -102,7 +153,15 @@ def main():
     ip = args[0]
     if not shutil.which('ssh') or not shutil.which('ssh-keygen'):
         sys.exit('OpenSSH (ssh and ssh-keygen) is needed.')
-    key = fetch_key(ip)
+    if ROOTED:
+        key = key_path(ip) if os.path.exists(key_path(ip)) else None
+        if ssh(ip, key, 'id -u').stdout.strip() != '0':
+            sys.exit('No root SSH on %s:22. Turn on SSH in the Homebrew Channel\'s settings and add your key.' % ip)
+        if '--no-launcher' in sys.argv:
+            launcher(ip, key, False)
+            return
+    else:
+        key = fetch_key(ip)
 
     if '--uninstall' in sys.argv:
         out = luna(ip, key, 'luna://com.webos.appInstallService/dev/remove', {'id': APP_ID}, replies=3, wait=30)
@@ -125,8 +184,12 @@ def main():
     ssh(ip, key, 'rm -f ' + TEMP)
     luna(ip, key, 'luna://com.webos.applicationManager/launch', {'id': APP_ID})
     print('Installed and open on the TV.')
+    if ROOTED and '--launcher' in sys.argv:
+        launcher(ip, key, True)
+        return
     print('Tip: while Free My TV is open, hold a number key on the remote to open it with that key from anywhere.')
-    print('Developer Mode lasts about 40 days: open the Developer Mode app now and then and press EXTEND.')
+    if not ROOTED:
+        print('Developer Mode lasts about 40 days: open the Developer Mode app now and then and press EXTEND.')
 
 
 if __name__ == '__main__':

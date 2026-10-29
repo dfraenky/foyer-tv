@@ -121,7 +121,13 @@ stays, and Free My TV opens with a long press of a number key.
 6. **Tell them:** while Free My TV is open, holding a number key pins it to that key (on a remote without number keys,
    it's in LG's app list on the home screen). Developer Mode lasts about 40 days; *EXTEND* in that app renews it (if
    it runs out, the TV removes developer apps, and installing again brings it back). `--uninstall` removes Free My TV.
-7. **Empty shelf on webOS 3** (user agent Chrome 38): the app can't list the TV's apps there (`listLaunchPoints`
+7. **Rooted TV** (Homebrew Channel, root SSH on port 22 with their key): `--root` installs over it, and `--launcher`
+   makes Free My TV the home screen: `webos/root/launcher.js` (Node, started by the boot hook `60-freemytv` in
+   `/var/lib/webosbrew/init.d`) opens it whenever `com.webos.app.home` comes to the front, unless Free My TV was in
+   front just before (the drawer's *LG Home*); LG Input Hook's keybinds get the Magic Remote's Home (uinput code 773).
+   `--no-launcher` takes all of it back. Stop processes by pid, never `pkill -f` a path: it also matches the SSH
+   shell that names it. Over SSH, `luna-send -n 1` prints nothing without a terminal; `-i` in the background does.
+8. **Empty shelf on webOS 3** (user agent Chrome 38): the app can't list the TV's apps there (`listLaunchPoints`
    denied, no `getAppLoadStatus`, and the remote control API answers `invalid origin` to file:// pages). Run
    `python3 webos/apps.py <IP>`: the TV asks them once to allow it, then build and install again. It writes
    `webos-apps.local.json` and `webos-icons.local/` (git-ignored), which only the LG build packs, never `--generic`.

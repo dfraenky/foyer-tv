@@ -441,6 +441,9 @@ var TV = (function () {
      */
     canOpenSettings: !tizen2,
 
+    /** LG's own home screen, for the drawer: on a rooted TV Free My TV takes Home (webos/root), and this is the way back. */
+    lgHome: webos ? 'com.webos.app.home' : '',
+
     /** Installed apps, as the TV's launcher lists them: [{id, title, icon, color}]. */
     apps: function (done) {
       if (samsung) { samsungApps(done); return; }
