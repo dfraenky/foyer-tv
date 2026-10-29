@@ -14,23 +14,39 @@ var HOME = 'com.webos.app.home';
 var LOG = '/tmp/freemytv-launcher.log';
 
 var last = '';        // the last app in front, other than nothing
-var launchedAt = 0;
+var now = '';         // the app in front now ('' for nothing)
+var episode = 0;      // when an app closed onto LG's home and we started bringing Free My TV back
+var tries = 0;
 
 function log(text) {
   try { fs.appendFileSync(LOG, new Date().toISOString() + ' ' + text + '\n'); } catch (e) {}
 }
 
-function launch() {
-  if (Date.now() - launchedAt < 3000) return;   // once per change, not a loop with an app that won't open
-  launchedAt = Date.now();
-  log('open ' + APP + ' (after ' + (last || 'start') + ')');
+function launch(why) {
+  log('open ' + APP + ' (' + why + ')');
   spawn('luna-send', ['-n', '1', 'luna://com.webos.applicationManager/launch', JSON.stringify({id: APP})],
     {stdio: 'ignore'}).on('error', function () {});
 }
 
+// Opens Free My TV a moment after LG's home came up, if it's still in front then.
+function soon(why) {
+  setTimeout(function () { if (now === HOME) launch(why); }, 400);
+}
+
 function front(id) {
-  if (id !== last) log('front: ' + (id || '(none)'));
-  if (id === HOME && last !== APP && last !== HOME) launch();
+  if (id !== now) log('front: ' + (id || '(none)'));
+  now = id;
+  if (id === HOME) {
+    if (last !== APP && last !== HOME) {
+      // An app closed (or the Home key got through): Free My TV instead.
+      if (Date.now() - episode > 10000) { episode = Date.now(); tries = 0; }
+      if (tries++ < 6) soon('after ' + (last || 'start'));
+    } else if (last === APP && Date.now() - episode < 10000 && tries++ < 6) {
+      // LG's home, still coming up after the app closed, lands on top of Free My TV a moment after we opened it,
+      // sometimes more than once: that's not someone choosing LG Home. A few times at most, never a loop.
+      soon('again, LG home came up over it');
+    }
+  }
   if (id) last = id;
 }
 
