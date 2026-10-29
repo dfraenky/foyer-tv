@@ -475,7 +475,7 @@ var TV = (function () {
       rootCall('POST', JSON.stringify({id: id}), done);
     },
 
-    /** Installed apps, as the TV's launcher lists them: [{id, title, icon, color}]. */
+    /** Installed apps, as the TV's launcher lists them: [{id, title, icon, color, removable}]. */
     apps: function (done) {
       if (samsung) { samsungApps(done); return; }
       if (!webos) {
@@ -488,7 +488,9 @@ var TV = (function () {
         for (var i = 0; i < points.length; i++) {
           var p = points[i];
           if (!p.id || p.id === self || HIDDEN.test(p.id)) continue;
-          out.push({id: p.id, title: p.title || p.id, icon: LG_ICONS[p.id] || p.largeIcon || p.icon || '', color: p.bgColor || p.iconColor || ''});
+          // removable: false for LG's built-in apps (Alexa, the browser...), which an uninstall only pretends to take.
+          out.push({id: p.id, title: p.title || p.id, icon: LG_ICONS[p.id] || p.largeIcon || p.icon || '', color: p.bgColor || p.iconColor || '',
+                    removable: p.removable !== false});
         }
         return out;
       }

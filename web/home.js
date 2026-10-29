@@ -721,7 +721,7 @@
     }
     var list = [{label: tr('Move'), symbol: 'move', run: function () { startMove(app); }},
                 {label: on ? tr('Remove from shelf') : tr('Add to shelf'), symbol: on ? 'remove' : 'add', run: function () { toggleShelf(app); }}];
-    if (canUninstall && !KEEP_APPS.test(app.id)) {
+    if (canUninstall && app.removable !== false && !KEEP_APPS.test(app.id)) {
       list.push({label: tr('Uninstall'), symbol: 'delete', warn: true, run: function () { menuAsk = true; st.menu = 1; menuShown = ''; updateFocus(); }});
     }
     return list;

@@ -144,9 +144,10 @@ function luna(uri, params, done) {
   child.on('exit', finish);
 }
 
+/** done(installed, removable): LG's built-in apps say removable false, and remove then only pretends. */
 function installed(id, done) {
   luna('luna://com.webos.applicationManager/getAppInfo', {id: id}, function (reply) {
-    done(/"returnValue"\s*:\s*true/.test(reply));
+    done(/"returnValue"\s*:\s*true/.test(reply), !/"removable"\s*:\s*false/.test(reply));
   });
 }
 
@@ -164,8 +165,9 @@ function gone(id, ms, done) {
 
 /** done(ok, what happened). remove only takes the job: it says yes even for an app that isn't there. */
 function uninstall(id, done) {
-  installed(id, function (there) {
+  installed(id, function (there, removable) {
     if (!there) { done(false, 'not installed'); return; }
+    if (!removable) { done(false, 'built into the TV'); return; }
     luna('luna://com.webos.appInstallService/remove', {id: id, subscribe: false}, function (reply) {
       gone(id, 20000, function (ok) {
         if (ok) { done(true, reply); return; }
