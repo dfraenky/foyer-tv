@@ -7,7 +7,7 @@
   "title": "Foyer",
   "icon": "icon.png",
   "largeIcon": "largeIcon.png",
-  "iconColor": "#FF7A9E",
+  "iconColor": "#2C245C",
   "resolution": "1920x1080",
   "handlesRelaunch": true,
   "disableBackHistoryAPI": true,

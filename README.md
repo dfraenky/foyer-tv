@@ -12,7 +12,7 @@ Open source, made to be adapted with an AI agent like [Claude Code](https://clau
 
 [What you get](#what-you-get) · [Where a pick opens](#where-a-pick-opens) · [Install on LG](#install-on-an-lg-tv) · [Rooted LG](#as-the-home-screen-on-a-rooted-lg-tv) · [Samsung](#samsung-tvs-tizen) · [Make it yours](#make-it-yours-with-an-ai-agent)
 
-<img src=".github/foyer-home.webp" width="880" alt="Foyer: a film's photo over the whole screen, the time, date and weather at the top left, and a dock of apps at the bottom">
+<img src=".github/foyer-tour.webp" width="880" alt="Foyer on an LG TV: a film's photo over the whole screen with the time and weather, the carousel of picks with their story, the tabs, and an app's menu on the dock">
 
 </div>
 
@@ -29,11 +29,6 @@ Open source, made to be adapted with an AI agent like [Claude Code](https://clau
 - **No ads.** No sponsored rows, banners or autoplaying promos.
 - **Smooth on real TVs.** 60 fps on an LG OLED C1 (webOS 6), which draws the page at twice its size: `performance=auto` turns shadows and animations off where the TV can't keep up.
 - **Day and night**, a screensaver of the picks with a big clock, 26 languages, and settings on the TV itself.
-
-<p align="center">
-<img src=".github/foyer-carousel.webp" width="434" alt="The carousel: Cyberpunk: Edgerunners over the whole screen, its details and story, the tabs at the top right">
-<img src=".github/foyer-apps.webp" width="434" alt="One press down: the inputs, the shortcuts and every app">
-</p>
 
 ## Where a pick opens
 
@@ -76,7 +71,7 @@ The easiest way to set it up for your apps, your TV and your taste: open the fol
 [Claude Code](https://claude.com/claude-code) (or another agent) and say what you want. [CLAUDE.md](CLAUDE.md) tells it
 how the project works and how to test on the TV. Try:
 
-- *"Install Foyer on my LG TV at 192.168.1.50. I live in Leipzig, and my Jellyfin server is at 192.168.1.20."*
+- *"Install Foyer on my LG TV at 192.168.1.50. I live in Berlin, and my Jellyfin server is at 192.168.1.20."*
 - *"When a pick is on Netflix, open Netflix on that title."*
 - *"Add Plex as a place the picks can open, like Jellyfin."*
 - *"Put YouTube, Litefin and Spotify on the dock, in that order."*
