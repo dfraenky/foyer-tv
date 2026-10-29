@@ -559,7 +559,7 @@
   // Home Settings → Ambient home: while the shelf has focus, a pick's photo (the screensaver's) fills the screen, sharp,
   // a new one every WALL_EVERY; the time, the date and the weather at the top left. Only with a photo to show.
   var wallAt = -1, wallFront = 0, wallShown = '', wallWanted = '', wallPick = null, WALL_EVERY = 45000;
-  try { wallShown = localStorage.getItem('fmtv.wall') || ''; } catch (e) {}
+  try { wallShown = localStorage.getItem('foyer.wall') || ''; } catch (e) {}
 
   /** The ambient look: on in Home Settings, with a photo to show. */
   function ambient() { return Prefs.ambient() && !!wallShown; }
@@ -579,7 +579,7 @@
       setClass(pics[1 - wallFront], 'on', false);
       wallShown = url;
       wallPick = pick;
-      try { localStorage.setItem('fmtv.wall', url); } catch (e) {}   // the next start shows it at once
+      try { localStorage.setItem('foyer.wall', url); } catch (e) {}   // the next start shows it at once
       renderAmbient();
       updateFocus();
     };
@@ -1459,7 +1459,7 @@
     var list = el('div', 'list', box), holder = el('div', 'rows', list);
     var rows = [
       [tr('Model'), info && info.model], [tr('Firmware'), info && info.firmware], [tr('System'), info && info.system],
-      [tr('IP address'), info && info.ip], [tr('Time zone'), TV.zone()], ['Free My TV', info && info.version]
+      [tr('IP address'), info && info.ip], [tr('Time zone'), TV.zone()], ['Foyer', info && info.version]
     ];
     for (var i = 0; i < rows.length; i++) {
       var row = el('div', 'row', holder), label = el('span', '', row, rows[i][0]);
@@ -1788,7 +1788,7 @@
     if (night === lastNight) return;
     lastNight = night;
     document.documentElement.style.background = night ? '#0B0B0D' : '';
-    try { localStorage.setItem('fmtv.night', night ? 'true' : 'false'); } catch (e) {}   // for index.html, next start
+    try { localStorage.setItem('foyer.night', night ? 'true' : 'false'); } catch (e) {}   // for index.html, next start
   }
 
   var saverOn = false, idleAt = Date.now(), saverIndex = 0, saverTimer = 0, saverPick = null, SAVER_AFTER = 5 * 60000;
@@ -1927,7 +1927,7 @@
 
   // The TV's apps and inputs as last listed: the shelf shows from these at once (the TV takes about half a second).
   var listed = '';
-  try { listed = localStorage.getItem('fmtv.apps') || ''; } catch (e) {}
+  try { listed = localStorage.getItem('foyer.apps') || ''; } catch (e) {}
 
   function useApps(list, list2) {
     apps = list.filter(function (a) { return !hidden(a); });
@@ -1942,7 +1942,7 @@
       TV.inputs(function (list2) {
         var now = JSON.stringify({apps: list, inputs: list2}), changed = now !== listed;
         listed = now;
-        if (changed) try { localStorage.setItem('fmtv.apps', now); } catch (e) {}
+        if (changed) try { localStorage.setItem('foyer.apps', now); } catch (e) {}
         useApps(list, list2);
         if (done) done(changed);
       });
@@ -2025,5 +2025,5 @@
   }, 30000);
 
   // For the browser preview and tests.
-  window.FreeMyTV = {state: st, move: move, activate: activate, back: back, showSaver: showSaver, hideSaver: hideSaver, toast: toast};
+  window.Foyer = {state: st, move: move, activate: activate, back: back, showSaver: showSaver, hideSaver: hideSaver, toast: toast};
 })();

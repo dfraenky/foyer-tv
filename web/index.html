@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=1920, height=1080">
-<title>Free My TV</title>
+<title>Foyer</title>
 <link rel="stylesheet" href="home.css">
 </head>
 <body>
 <script>
   // The look the home screen last had, before anything is drawn, so a night start doesn't flash the day one first.
   try {
-    if (localStorage.getItem('fmtv.night') === 'true') {
+    if (localStorage.getItem('foyer.night') === 'true') {
       document.documentElement.style.background = '#0B0B0D';
       document.body.className = 'night';
     }

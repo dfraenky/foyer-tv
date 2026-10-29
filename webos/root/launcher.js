@@ -1,28 +1,28 @@
 /*
- * Free My TV as the home screen of a rooted LG TV (webosbrew's Homebrew Channel), started at boot by
- * /var/lib/webosbrew/init.d/60-freemytv. Watches the app in front and the TV's power: when an app closes, when LG's
- * home comes up, and when the TV turns on to Live TV, Free My TV opens instead. LG's home stays when it was opened
- * from Free My TV (its "LG Home" in the drawer), and an HDMI input the TV woke up on stays (a console that turned it
- * on). The Home key itself goes to Free My TV through LG Input Hook, when installed.
+ * Foyer as the home screen of a rooted LG TV (webosbrew's Homebrew Channel), started at boot by
+ * /var/lib/webosbrew/init.d/60-foyer. Watches the app in front and the TV's power: when an app closes, when LG's
+ * home comes up, and when the TV turns on to Live TV, Foyer opens instead. LG's home stays when it was opened
+ * from Foyer (its "LG Home" in the drawer), and an HDMI input the TV woke up on stays (a console that turned it
+ * on). The Home key itself goes to Foyer through LG Input Hook, when installed.
  * Plain ES5: webOS 6 ships Node 8, older ones older.
- * It also uninstalls apps for Free My TV (an app's menu: hold OK), which the TV denies the page: on 127.0.0.1:7172,
+ * It also uninstalls apps for Foyer (an app's menu: hold OK), which the TV denies the page: on 127.0.0.1:7172,
  * only for installed apps' pages (origin file:// or none, never a website's), never LG's own apps or the Homebrew Channel.
- * Off: touch /var/lib/freemytv/off (the boot hook then starts nothing). Removed with install.py --root --no-launcher.
+ * Off: touch /var/lib/foyer/off (the boot hook then starts nothing). Removed with install.py --root --no-launcher.
  */
 var spawn = require('child_process').spawn;
 var fs = require('fs');
 var http = require('http');
 
-var APP = process.argv[2] || 'io.freemytv';
+var APP = process.argv[2] || 'io.foyertv';
 var HOME = 'com.webos.app.home';
 var LIVE_TV = 'com.webos.app.livetv';
-var LOG = '/tmp/freemytv-launcher.log';
+var LOG = '/tmp/foyer-launcher.log';
 // LG's own pieces that come and go in front on their own: not an app someone closed.
 var SYSTEM = /^com\.webos\.app\.(home|livetv|hdmi\d|externalinput|inputcommon|membership)/;
 
 var last = '';        // the last app in front, other than nothing
 var now = '';         // the app in front now ('' for nothing)
-var episode = 0;      // when an app closed and we started bringing Free My TV back
+var episode = 0;      // when an app closed and we started bringing Foyer back
 var tries = 0;
 var on = true;        // the TV is on (not in standby)
 var wokeAt = 0;
@@ -37,7 +37,7 @@ function launch(why) {
     {stdio: 'ignore'}).on('error', function () {});
 }
 
-/** One more try at bringing Free My TV back after an app closed: a few at most, never a loop. */
+/** One more try at bringing Foyer back after an app closed: a few at most, never a loop. */
 function retry() {
   if (Date.now() - episode > 10000) { episode = Date.now(); tries = 0; }
   return tries++ < 6;
@@ -61,14 +61,14 @@ function front(id) {
     return;
   }
   if (id === '' && before && before !== APP && !SYSTEM.test(before) && Date.now() - wokeAt > 6000) {
-    // An app closed: Free My TV at once, before LG's home comes up. A moment later, so a TV turning off (which
+    // An app closed: Foyer at once, before LG's home comes up. A moment later, so a TV turning off (which
     // closes the app first) says so before.
     setTimeout(function () {
       if (now === '' && on && retry()) launch('after ' + before);
     }, 300);
   } else if (id === HOME) {
-    // LG's home, after an app closed, the Home key without Input Hook, or still coming up over Free My TV a moment
-    // after we opened it (not someone choosing LG Home: that's from Free My TV, without an app closing just before).
+    // LG's home, after an app closed, the Home key without Input Hook, or still coming up over Foyer a moment
+    // after we opened it (not someone choosing LG Home: that's from Foyer, without an app closing just before).
     var closed = before !== APP && before !== HOME;
     if (closed || (before === APP && Date.now() - episode < 10000)) {
       setTimeout(function () {
@@ -78,7 +78,7 @@ function front(id) {
   }
 }
 
-/** The TV is waking up on LG's home or Live TV: Free My TV right away, once. */
+/** The TV is waking up on LG's home or Live TV: Foyer right away, once. */
 function wake(why) {
   if (Date.now() - wokeAt < 10000) return;
   wokeAt = episode = Date.now();
@@ -94,8 +94,8 @@ function power(state) {
   on = active;
   log('power: ' + state);
   if (!on) return;
-  // Turned on. Usually front() saw LG's home or Live TV already and opened Free My TV. Otherwise the TV opens its
-  // last input a moment later: Live TV (or nothing, or LG's home) becomes Free My TV; an HDMI input stays, since a
+  // Turned on. Usually front() saw LG's home or Live TV already and opened Foyer. Otherwise the TV opens its
+  // last input a moment later: Live TV (or nothing, or LG's home) becomes Foyer; an HDMI input stays, since a
   // console or player may have turned the TV on for itself.
   if (now === HOME || now === LIVE_TV) return wake('TV turned on');
   setTimeout(function () {
@@ -126,7 +126,7 @@ function follow(uri, re, each) {
 // MARK: - Uninstalling, for the page
 
 var PORT = 7172;
-var KEEP = /^(com\.webos\.|com\.lge\.|com\.palm\.|org\.webosbrew\.|io\.freemytv)/;
+var KEEP = /^(com\.webos\.|com\.lge\.|com\.palm\.|org\.webosbrew\.|io\.foyer)/;
 
 /** One Luna call as root; done(reply text or ''). -i, not -n 1: that prints nothing without a terminal. */
 function luna(uri, params, done) {

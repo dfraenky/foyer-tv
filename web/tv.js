@@ -63,7 +63,7 @@ var TV = (function () {
     } catch (e) { finish(false); }
   }
 
-  // LG's own screensaver asks every subscribed app first. While Free My TV is on screen and its own screensaver will
+  // LG's own screensaver asks every subscribed app first. While Foyer is on screen and its own screensaver will
   // take over (`hold`, from home.js), it says no; otherwise, and in the background, the TV's runs as before.
   var saverBridge = null;
 
@@ -86,7 +86,7 @@ var TV = (function () {
   // The TV asks once to allow it; the key it gives back is kept. Newer firmware gives the page its own origin
   // (file://<app id>-webos), which the API refuses with 1008 "invalid origin": there our JS service (webos/service)
   // makes the call.
-  var SSAP_KEY = 'fmtv.ssapKey', SSAP_REFUSED = 'fmtv.ssapRefused';
+  var SSAP_KEY = 'foyer.ssapKey', SSAP_REFUSED = 'foyer.ssapRefused';
 
   /** One call to the remote control API; done(result) with null on failure. */
   function ssap(uri, done) {
@@ -250,7 +250,7 @@ var TV = (function () {
     });
   }
 
-  var self = 'io.freemytv';
+  var self = 'io.foyertv';
   if (webos && window.PalmSystem && window.PalmSystem.identifier) self = window.PalmSystem.identifier.split(' ')[0];
   if (samsung) {
     try { self = window.tizen.application.getCurrentApplication().appInfo.id; } catch (e) {}
@@ -458,7 +458,7 @@ var TV = (function () {
      */
     canOpenSettings: !tizen2,
 
-    /** LG's own home screen, for the drawer: on a rooted TV Free My TV takes Home (webos/root), and this is the way back. */
+    /** LG's own home screen, for the drawer: on a rooted TV Foyer takes Home (webos/root), and this is the way back. */
     lgHome: webos ? 'com.webos.app.home' : '',
 
     /**

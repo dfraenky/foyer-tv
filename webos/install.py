@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Installs Free My TV on an LG TV in Developer Mode, over your Wi-Fi.
+"""Installs Foyer on an LG TV in Developer Mode, over your Wi-Fi.
 
     python3 webos/install.py 192.168.1.50              # install or update, then open it
     python3 webos/install.py 192.168.1.50 --uninstall  # remove it
@@ -11,9 +11,9 @@ home screen:
     python3 webos/install.py 192.168.1.50 --root --launcher      # and make it the home screen
     python3 webos/install.py 192.168.1.50 --root --no-launcher   # LG's home screen back
 
-As the home screen, the Home key opens Free My TV (through LG Input Hook, when it's installed), and so does closing an
-app: a watcher started at boot (webos/root) opens it whenever LG's home comes up, except when it was opened from Free
-My TV (its drawer has LG Home). Root SSH uses ~/.ssh/freemytv_webos_<IP> when that key is in the TV's authorized_keys,
+As the home screen, the Home key opens Foyer (through LG Input Hook, when it's installed), and so does closing an
+app: a watcher started at boot (webos/root) opens it whenever LG's home comes up, except when it was opened from Foyer
+(its drawer has LG Home). Root SSH uses ~/.ssh/foyer_webos_<IP> when that key is in the TV's authorized_keys,
 otherwise your own SSH key.
 
 Before the first install, on the TV: install "Developer Mode" from the LG Content Store, sign in with a free LG
@@ -21,7 +21,7 @@ developer account (webostv.developer.lge.com), turn on Dev Mode Status (the TV r
 The app shows the TV's IP address and a passphrase.
 
 The first time, this downloads the TV's key from its Key Server and asks for that passphrase (type it here; it is
-not stored). The unlocked key is kept in ~/.ssh/freemytv_webos_<IP>, so updates need neither. The app is copied over
+not stored). The unlocked key is kept in ~/.ssh/foyer_webos_<IP>, so updates need neither. The app is copied over
 SSH (port 9922) and installed with the TV's own installer (com.webos.appInstallService), the way LG's tools do it.
 Install flow based on FreeMyTvWebOS by danielthejoker18 (MIT). Needs Python 3 and OpenSSH (ssh, ssh-keygen).
 """
@@ -36,10 +36,10 @@ import tempfile
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-IPK = os.path.join(ROOT, 'FreeMyTV-webos.ipk')
+IPK = os.path.join(ROOT, 'Foyer-webos.ipk')
 with open(os.path.join(ROOT, 'webos', 'appinfo.json'), encoding='utf-8') as f:
     APP_ID = json.load(f)['id']
-TEMP = '/media/developer/temp/freemytv.ipk'
+TEMP = '/media/developer/temp/foyer.ipk'
 ROOTED = '--root' in sys.argv
 USER = 'root' if ROOTED else 'prisoner'
 SSH_OPTS = ['-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=' + os.devnull, '-o', 'LogLevel=ERROR',
@@ -47,14 +47,14 @@ SSH_OPTS = ['-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=' + os.d
 if ROOTED:
     SSH_OPTS += ['-o', 'BatchMode=yes']
 # On a rooted TV: the watcher, its boot hook, and the Home key in LG Input Hook (its uinput code on the Magic Remote).
-LAUNCHER_DIR = '/var/lib/freemytv'
-BOOT_HOOK = '/var/lib/webosbrew/init.d/60-freemytv'
+LAUNCHER_DIR = '/var/lib/foyer'
+BOOT_HOOK = '/var/lib/webosbrew/init.d/60-foyer'
 KEYBINDS = '/home/root/.config/lginputhook/keybinds.json'
 HOME_KEY = '773'
 
 
 def key_path(ip):
-    return os.path.join(os.path.expanduser('~'), '.ssh', 'freemytv_webos_' + ip.replace('.', '_'))
+    return os.path.join(os.path.expanduser('~'), '.ssh', 'foyer_webos_' + ip.replace('.', '_'))
 
 
 def lock(path):
@@ -117,7 +117,7 @@ def luna(ip, key, uri, payload, replies=1, wait=20):
 
 
 def launcher(ip, key, on):
-    """Free My TV as the home screen of a rooted TV (on), or LG's again: the watcher, its boot hook, the Home key."""
+    """Foyer as the home screen of a rooted TV (on), or LG's again: the watcher, its boot hook, the Home key."""
     # Input Hook's keybinds, merged with what's there: it reloads them on its own.
     edit = ("var fs=require('fs'),f='%s';if(fs.existsSync(f)){var k=JSON.parse(fs.readFileSync(f,'utf8')||'{}');"
             "%s;fs.writeFileSync(f,JSON.stringify(k,null,2))}") % (
@@ -125,7 +125,7 @@ def launcher(ip, key, on):
         "if(k['%s']&&k['%s'].id==='%s')delete k['%s']" % (HOME_KEY, HOME_KEY, APP_ID, HOME_KEY))
     if on:
         here = os.path.join(ROOT, 'webos', 'root')
-        for src, dst in (('launcher.js', LAUNCHER_DIR + '/launcher.js'), ('60-freemytv', BOOT_HOOK)):
+        for src, dst in (('launcher.js', LAUNCHER_DIR + '/launcher.js'), ('60-foyer', BOOT_HOOK)):
             with open(os.path.join(here, src), 'rb') as f:
                 copy = ssh(ip, key, 'mkdir -p %s && cat > %s && chmod 755 %s' % (os.path.dirname(dst), dst, dst), stdin=f)
             if copy.returncode != 0:
@@ -138,10 +138,10 @@ def launcher(ip, key, on):
     ssh(ip, key, 'node -e "%s"' % edit)
     hooked = ssh(ip, key, '[ -f %s ] && echo yes' % KEYBINDS).stdout.strip() == 'yes'
     if on:
-        print('Free My TV is the home screen: closing an app comes back to it, and so does LG\'s home screen.')
+        print('Foyer is the home screen: closing an app comes back to it, and so does LG\'s home screen.')
         print('The Home key opens it.' if hooked else 'For the Home key too, install LG Input Hook from the Homebrew '
               'Channel, open it once, then run this again.')
-        print('LG\'s home screen is in Free My TV\'s drawer (LG Home). --no-launcher undoes all of it.')
+        print('LG\'s home screen is in Foyer\'s drawer (LG Home). --no-launcher undoes all of it.')
     else:
         print('LG\'s home screen is back: the Home key and closing apps go there again.')
 
@@ -187,7 +187,7 @@ def main():
     if ROOTED and '--launcher' in sys.argv:
         launcher(ip, key, True)
         return
-    print('Tip: while Free My TV is open, hold a number key on the remote to open it with that key from anywhere.')
+    print('Tip: while Foyer is open, hold a number key on the remote to open it with that key from anywhere.')
     if not ROOTED:
         print('Developer Mode lasts about 40 days: open the Developer Mode app now and then and press EXTEND.')
 

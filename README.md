@@ -2,362 +2,205 @@
 
 <img src="docs/assets/icon-512.png" width="96" alt="">
 
-# Free My TV
+# Foyer
 
-**A fast, ad-free home screen for Google TV, LG and Samsung TVs.**
+**A calm, ad-free home screen for LG and Samsung TVs, that takes you straight to the film.**
 
-Trending picks from your own apps, the weather at a glance, and a look that follows the sunset.<br>
-Open source. Built with Claude Code. One button to undo.
+Full-screen picks of what's trending, your apps in one dock, the time and the weather at a glance.<br>
+Every pick opens where *you* watch it: your Jellyfin library, Seerr to request it, or the streaming app you pay for.<br>
+Open source, made to be adapted with an AI agent like [Claude Code](https://claude.com/claude-code).
 
-[**freemytv.io**](https://freemytv.io) · [Install](#install) · [LG TVs](#lg-tvs-webos) · [Samsung TVs](#samsung-tvs-tizen) · [Any TV](#any-tv) · [Make it yours](#make-it-yours)
+[What you get](#what-you-get) · [Where a pick opens](#where-a-pick-opens) · [Install on LG](#install-on-an-lg-tv) · [Rooted LG](#as-the-home-screen-on-a-rooted-lg-tv) · [Samsung](#samsung-tvs-tizen) · [Make it yours](#make-it-yours-with-an-ai-agent)
 
-<img src=".github/preview.webp" width="880" alt="The Free My TV home screen: a glass shelf of apps, trending picks, and a drawer with the weather and crypto prices">
+<img src=".github/foyer-home.webp" width="880" alt="Foyer: a film's photo over the whole screen, the time, date and weather at the top left, and a dock of apps at the bottom">
 
 </div>
 
-> **This fork: a lite version for LG OLED.** Small changes to [Free My TV](https://github.com/simbasjungles/free-my-tv), tested on an LG OLED C1 (webOS 6.5.3, firmware 03.53.45). It keeps the LG app from upstream and adds, all optional in `config.properties`:
->
-> - **Jellyfin, Litefin and Seerr.** Trending titles in your Jellyfin library and its newest join the picks (`jellyfin_url`, `jellyfin_key`). With `picks_from=jellyfin` the picks are what's popular today: in your library they open [Litefin](https://github.com/MoazSalem/litefin) (or Jellyfin), the rest open Litefin to request them through its Seerr integration. With a Litefin build that takes launch parameters ([MoazSalem/litefin#559](https://github.com/MoazSalem/litefin/pull/559)), a pick opens on its own page.
-> - **Anime.** `anime_tab=true` adds an Anime tab, and anime among the picks in Explore: in Jellyfin, on Crunchyroll, or to request.
-> - **Smooth on the C1.** It draws the page at twice its size: `performance=auto` turns shadows and animations off there (20 fps before, 58 now); `calm` and `full` are there too.
-> - **Ambient home.** While the shelf has focus, a pick's photo fills the screen, sharp, a new one every 45 seconds, with the time, the date and the weather. ↑ is a carousel: ← → go through the tab's picks over the whole screen, with their story; the tabs sit at the top right. ↓ shows the inputs and shortcuts, then every app. 60 fps on the C1. `ambient_home=false`, or Home Settings, turns it off.
-> - **An app's menu.** Hold OK on an app on the shelf or among all apps: Move it (← → ↑ ↓, OK drops it), put it on or off the shelf, or uninstall it (on a rooted TV with the watcher below).
-> - **Quicker start.** The shelf shows at once from the apps the TV listed last time, and coming back from an app no longer rebuilds it.
-> - **Narrow cards.** `hero_card=false` keeps every pick narrow; the focused one shows its app first, and a title or line that doesn't fit runs like a conveyor.
-> - Sharper Crunchyroll, Spotify and YouTube logos on the shelf, and Litefin's on black.
-> - **The home screen, on a rooted TV.** `python3 webos/install.py <IP> --root --launcher`: the Home key and closing an app come back to Free My TV ([how](#as-the-home-screen-on-a-rooted-lg-tv)).
+> Foyer started as a fork of [Free My TV](https://github.com/simbasjungles/free-my-tv) by its contributors, and keeps
+> its web home screen, its LG and Samsung packaging and its Google TV app. It has since grown its own look and its own
+> idea: a home screen that is a gateway to *your* media. Thank you, Free My TV.
 
 ## What you get
 
-- **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
-- **Your apps, front and center.** The streaming apps you actually use, on a glass shelf. Pick them and their order right on the TV.
-- **Trending, not sponsored.** Three fresh picks every hour (up to six, in Home Settings) from what's trending this week and the latest releases, only from apps you already have. Movies and Shows get their own tabs.
-- **Weather and markets, one press away.** The hour-by-hour forecast (or the next 5 days), sunrise and sunset, and live crypto prices.
-- **What's playing.** Music, a podcast or the radio going on in the background shows on the home screen and the screensaver: the title, the artist and the app, from any app that tells Android what it plays (*Home Settings*, off until you turn it on).
-- **Light by day, dark by night.** It follows your city's real sunset, the way your phone does.
-- **A screensaver to match.** Full-screen photos of the picks with a big glass clock. Optionally (*Watch from the screensaver*, in Home Settings), OK opens the title on screen in its app, and any other button just closes it.
-- **Your own photos** (Google TV and Android TV). Send them from your computer (up to 100): the screensaver shows them, and without picks one is the home screen's background each hour.
-- **Fast.** 60 fps, every frame in 16.6 ms, on the TV's own chip. The home screen uses 96 MB of memory instead of 242 MB (−60%).<br><sub>Measured on a 98″ TCL Google TV running Android 14.</sub>
-- **Set up on the TV.** Language, your city, temperature, theme, how many picks and which streaming services they come from, the weather and prices cards, the forecast's hours or days, which coins, and the apps on the shelf, in Free My TV's own settings.
-- **Safe.** No root. Nothing is uninstalled. One button brings back the factory home screen.
+- **The ambient home.** While your apps have focus, a pick's photo fills the screen, sharp, a new one every 45 seconds, with the time, the date and the weather at the top left.
+- **A carousel of picks.** Press ↑: the picks of this week go by over the whole screen (← →), with their title, details and story. *Explore*, *Movies*, *Shows* and *Anime* sit at the top right. OK opens the pick.
+- **Every app, one press down.** ↓ shows the TV's inputs and shortcuts, then all your apps.
+- **Hold OK on an app** for its menu: move it, put it on or off the dock, or uninstall it (on a rooted LG TV).
+- **No ads.** No sponsored rows, banners or autoplaying promos.
+- **Smooth on real TVs.** 60 fps on an LG OLED C1 (webOS 6), which draws the page at twice its size: `performance=auto` turns shadows and animations off where the TV can't keep up.
+- **Day and night**, a screensaver of the picks with a big clock, 26 languages, and settings on the TV itself.
 
-## Install
+<p align="center">
+<img src=".github/foyer-carousel.webp" width="434" alt="The carousel: Cyberpunk: Edgerunners over the whole screen, its details and story, the tabs at the top right">
+<img src=".github/foyer-apps.webp" width="434" alt="One press down: the inputs, the shortcuts and every app">
+</p>
 
-About ten minutes. You need a Google TV or Android TV (Android 8 or newer) and a computer on the same Wi-Fi.
+## Where a pick opens
 
-### The easy way: an AI assistant
+The picks come from [TMDB](https://www.themoviedb.org/) (what's trending this week, new releases, this season's anime). What makes Foyer useful is where OK takes you, and that is up to you:
 
-1. **On the TV**, turn on developer mode: Settings → System → About → press *Android TV OS build* 7 times. Then Settings → System → Developer options → turn on **USB debugging**. Write down the TV's IP address (Settings → Network & Internet).
-2. **On your computer**, open an AI coding assistant ([Claude Code](https://claude.com/claude-code), Codex or Antigravity) and say:
-   > Install Free My TV (github.com/simbasjungles/free-my-tv) on my TV at 192.168.1.50. I live in Lisbon.
+| A pick that is… | opens |
+|---|---|
+| in your **Jellyfin** library | [Litefin](https://github.com/MoazSalem/litefin) (or the Jellyfin app) |
+| not in your library | Litefin's **Seerr** page, to request it |
+| anime on **Crunchyroll** | Crunchyroll |
+| on **Netflix, Prime Video, Disney+**, Max, Apple TV… in your country | that app |
 
-   It downloads the code, installs the tools it needs, builds the app and puts it on your TV, and asks before anything important. Swap in your TV's IP and your city.
-3. **On the TV**, open *Free My TV* → *Home Screen* → *Free My TV*. That's when the TV asks *Allow USB debugging?* for Free My TV: tick *Always allow* and accept.
+### Litefin: straight to the title
 
-### The ready APK
+[**Litefin**](https://github.com/MoazSalem/litefin) is a fast Jellyfin client for TVs with Seerr built in. Its next
+version takes launch parameters ([MoazSalem/litefin#559](https://github.com/MoazSalem/litefin/pull/559), merged into
+`development`), so a pick from Foyer opens **on the title itself**: its page in your library, or Seerr's page to
+request it. One press from the sofa to the film. Until that version is out, build Litefin from its `development`
+branch; with the released version a pick opens Litefin's home.
 
-No tools to install besides adb. The APK on the [latest release](https://github.com/simbasjungles/free-my-tv/releases/latest) has no TMDB key: add yours on the TV for the picks (*Home Settings* → *TMDB key*, [below](#the-tmdb-key)). It takes your city from the TV's time zone (change it in *Home Settings* → *City*).
+```properties
+jellyfin_url=http://192.168.1.20:8096
+jellyfin_key=…            # Jellyfin: Dashboard → API Keys → +
+picks_from=jellyfin       # the picks are what's popular today: yours open in Jellyfin, the rest go to Seerr
+anime_tab=true
+```
 
-1. **On the TV**, do step 1 above.
-2. **On your computer**, download `FreeMyTV.apk` from the release and install it:
-   ```bash
-   adb connect 192.168.1.50:5555
-   adb install -r FreeMyTV.apk
-   ```
-   On Android 14, Google Play Protect may hold the install with *Risky app blocked*: choose *More details* → *Install anyway*.
-3. **On the TV**, do step 3 above.
+### Netflix, Prime Video and the others
 
-If you built Free My TV yourself before, switch back to *Original* and uninstall it first: your build and the release are signed with different keys. For the picks, add your TMDB key in *Home Settings* → *TMDB key* (below).
+Any streaming app on the TV can take the picks it streams in your country (`picks_from=all`, the default): TMDB says
+which service has a title, and Foyer opens that app. Today they open on the app's home. Most apps also take a title
+when they're opened, each in its own way. That is exactly the kind of change to make with an AI agent (below): the
+mapping is a short list in [`web/data.js`](web/data.js) (`SERVICES`), and the launch parameters are one function in
+[`web/home.js`](web/home.js) (`pickParams`), where Litefin's are.
 
-**Updates come to the TV.** Once a week the APK from the release looks for a newer release and downloads it; the home screen then says so once, and *Home Settings* → *Updates* (the last row) installs it through Android's installer, which asks first (and, the first time, asks to allow Free My TV to install apps). OK on *Updates* also checks right away. The download must come from this repository's releases, match the size and SHA-256 GitHub lists, be newer, and be signed with the project's key. A build you made yourself checks only when you press *Updates*, and only says when a new version is out: build it again to update.
+## Make it yours, with an AI agent
 
-### The manual way
+Foyer is small, plain code (HTML, CSS and ES5 JavaScript, no frameworks), written to be changed by an AI coding agent.
+The easiest way to set it up for your apps, your TV and your taste: open the folder in
+[Claude Code](https://claude.com/claude-code) (or another agent) and say what you want. [CLAUDE.md](CLAUDE.md) tells it
+how the project works and how to test on the TV. Try:
 
-1. **On the TV**, do step 1 above.
-2. **Tools:** a JDK (17+), the Android SDK command-line tools (build-tools 34, platform android-34) and adb. On a Mac:
-   ```bash
-   brew install --cask temurin android-commandlinetools android-platform-tools
-   sdkmanager "build-tools;34.0.0" "platforms;android-34"
-   ```
-   On Linux, get OpenJDK 17, Android's command-line tools and adb from your package manager, then run the same `sdkmanager` line. On Windows, use Git Bash (which Claude Code uses there) or WSL.
-3. **Build:**
-   ```bash
-   ./build.sh
-   ```
-   The first run creates `config.properties`. Set your city and your [TMDB key](#the-tmdb-key) there, then run it again.
-4. **Install:**
-   ```bash
-   adb connect 192.168.1.50:5555
-   adb install -r FreeMyTV.apk
-   ```
-   If the install seems stuck, look at the TV: on Android 14, Google Play Protect may hold it with *Risky app blocked* ("built for an older version of Android"), since Free My TV targets Android 13. Choose *More details* → *Install anyway*. Updates don't ask again.
+- *"Install Foyer on my LG TV at 192.168.1.50. I live in Leipzig, and my Jellyfin server is at 192.168.1.20."*
+- *"When a pick is on Netflix, open Netflix on that title."*
+- *"Add Plex as a place the picks can open, like Jellyfin."*
+- *"Put YouTube, Litefin and Spotify on the dock, in that order."*
+- *"Show the carousel's picks only from my library."*
+- *"Make the clock smaller and move the weather under it."*
 
-   Chromecast with Google TV on Android 14 keeps port 5555 closed even with USB debugging on: turn on *Wireless debugging* (Developer options), pair with `adb pair <address:port> <code>`, then run `adb tcpip 5555` over that connection. Port 5555 closes again at every restart, so after one, *Original*, the watchdog and the boot check can't reach ADB until you run `adb tcpip 5555` again (the pairing stays).
+It reads the code, makes the change, builds the package and installs it on your TV, and asks before anything important.
 
-   On TCL TVs, also let it run in the background (TCL blocks it by default, and the switch never starts):
-   ```bash
-   adb shell "appops set io.freemytv AUTO_START allow || appops set io.freemytv APP_AUTO_START allow"
-   ```
-5. **On the TV**, open *Free My TV* → *Home Screen* → *Free My TV*. The TV asks *Allow USB debugging?* once more, now for Free My TV itself: tick *Always allow* and accept. (Run `adb disconnect 192.168.1.50:5555` first: on Android 8 to 10 the TV can hand that answer to a computer that's still connected.)
+## Install on an LG TV
 
-   On some TCL TVs (Android 11, Realtek), a second background killer, TGuard, can stop the switch while it measures the original home screen: the settings screen closes and the TV's own home screen stays. Android runs the switch again by itself within a minute or two; then press Home: Free My TV opening means it went through.
-
-## LG TVs (webOS)
-
-The same home screen as an LG app: the picks, the glass shelf with your apps, the drawer with inputs, weather and prices, day and night, Home Settings and the shelf editor. It installs through LG's own Developer Mode, with nothing rooted or changed on the TV. LG's home screen stays where it is, and Free My TV is one press of a number key away (or in LG's app list, on remotes without them).
-
-You need an LG TV (webOS 3 or newer) and a computer on the same Wi-Fi, with Python 3.
+You need an LG TV (webOS 3 or newer) and a computer on the same Wi-Fi, with Python 3. Nothing on the TV is rooted or
+changed; LG's home screen stays where it is.
 
 1. **On the TV**, open the LG Content Store and install **Developer Mode**. Sign in with a free [LG developer account](https://webostv.developer.lge.com), turn on **Dev Mode Status** (the TV restarts), then turn on **Key Server**. Write down the IP address and the passphrase it shows.
-2. **On your computer**, get the code and build. `config.properties` works as for Google TV (your city, your [TMDB key](#the-tmdb-key)):
+2. **On your computer**, get the code and build. The first build creates `config.properties`: set your city, your [TMDB key](#the-tmdb-key) and, if you like, Jellyfin (see [Settings](#settings)). Then build again:
    ```bash
-   git clone https://github.com/simbasjungles/free-my-tv && cd free-my-tv
+   git clone https://github.com/dfraenky/foyer-tv && cd foyer-tv
    python3 webos/build.py
    ```
 3. **Install.** The first time, it asks for the TV's passphrase; updates don't:
    ```bash
    python3 webos/install.py 192.168.1.50
    ```
-4. **On the TV**, while Free My TV is open, hold a number key on the remote. From then on, that key opens it from anywhere. On a remote without number keys, open it from LG's app list on the home screen, like any other app.
+4. **On the TV**, while Foyer is open, hold a number key on the remote: from then on that key opens it from anywhere.
 
-With an AI assistant, say *"Install Free My TV (github.com/simbasjungles/free-my-tv) on my LG TV at 192.168.1.50. I live in Lisbon."* It builds the app and hands you the install command, so you type the passphrase yourself.
+On webOS 6 and newer, LG doesn't let Developer Mode apps see the TV's apps. Foyer then asks the TV, once, for the
+access LG's phone app uses: allow it, and from the next start all your apps show, with their icons. On webOS 3, run
+`python3 webos/apps.py 192.168.1.50` before building, so the list is built in.
 
-With the [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel), you can skip the computer: add the repository `https://freemytv.io/webos/apps.json` in the Channel's settings, and Free My TV shows up in its list. That's the release build: it takes the city from the TV's time zone (change it in *Home Settings* → *City*), and for the picks you type your [TMDB key](#the-tmdb-key) in *Home Settings* → *TMDB key*. If you installed your own build, don't update it from there, or the release replaces it.
-
-On webOS 6 and newer, LG doesn't let apps installed through Developer Mode see which apps the TV has. Free My TV then shows the well-known ones it finds (Netflix, YouTube, Prime Video, Disney+, Apple TV, Plex and more) and asks the TV, once, for the access LG's phone app uses: a message on the TV asks whether to allow Free My TV. Allow it, and from the next start all your apps show, with their icons.
-
-Older LG TVs (webOS 3) don't let Free My TV see their apps at all, so the shelf stays empty. There your computer asks the TV instead (the TV asks once whether to allow it), and the list and icons are built into the app. Run it again after installing new apps on the TV:
-```bash
-python3 webos/apps.py 192.168.1.50 && python3 webos/build.py && python3 webos/install.py 192.168.1.50
-```
-
-Developer Mode lasts about 40 days: open the Developer Mode app now and then and press **EXTEND**. To remove Free My TV, run `python3 webos/install.py 192.168.1.50 --uninstall`.
+Developer Mode lasts about 40 days: open the Developer Mode app now and then and press **EXTEND**. To remove Foyer:
+`python3 webos/install.py 192.168.1.50 --uninstall`.
 
 ### As the home screen, on a rooted LG TV
 
-On a TV rooted with the [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel) (root SSH on, your key in it), Free My TV can take over from LG's home screen:
+On a TV rooted with the [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel) (root SSH on, your key in it), Foyer takes over from LG's home screen:
 ```bash
 python3 webos/install.py 192.168.1.50 --root --launcher
 ```
-- **Closing an app** comes back to Free My TV, and so does anything else that brings up LG's home screen. A small watcher started at boot (`webos/root/`, in `/var/lib/freemytv`) does it.
-- **Turning the TV on** opens Free My TV instead of Live TV. An HDMI input the TV wakes up on stays, for a console or player that turned it on.
-- **The Home key** opens Free My TV, through [LG Input Hook](https://github.com/Simon34545/lginputhook) (install it from the Homebrew Channel and open it once). Without it, Home in an app shows LG's home screen for a moment, then Free My TV.
-- **Uninstalling** from an app's menu (hold OK) goes through the same watcher: the TV doesn't let the page do it. It listens on 127.0.0.1:7172, refuses websites and never removes LG's own apps or the Homebrew Channel.
-- **LG's home screen** is still there: *LG Home* in Free My TV's drawer opens it and stays.
+- **Closing an app** comes back to Foyer, and so does anything else that brings up LG's home screen. A small watcher started at boot (`webos/root/`, in `/var/lib/foyer`) does it.
+- **Turning the TV on** opens Foyer instead of Live TV. An HDMI input the TV wakes up on stays, for a console or player that turned it on.
+- **The Home key** opens Foyer, through [LG Input Hook](https://github.com/Simon34545/lginputhook) (install it from the Homebrew Channel and open it once).
+- **Uninstalling** from an app's menu (hold OK) goes through the same watcher, since the TV doesn't let a page do it. It listens on 127.0.0.1:7172, refuses websites, and never removes LG's own apps, apps built into the TV or the Homebrew Channel.
+- **LG's home screen** is still there: *LG Home* among the shortcuts opens it and stays.
 
 `--no-launcher` gives Home and the closed apps back to LG's home screen. Tested on an LG OLED C1 (webOS 6.5.3).
 
 ## Samsung TVs (Tizen)
 
-The same home screen as a Samsung app, with everything the LG one has: the picks, the shelf, the drawer with the inputs, the weather and the prices, day and night, and its own settings. It installs through Samsung's own Developer Mode, with nothing rooted or changed on the TV, and Samsung's home screen stays where it is.
-
-You need a Samsung TV on Tizen, from 2015 or newer, and a computer on the same Wi-Fi (a 2015 UE48JU6100 on Tizen 2.3 was reported working, #317; Orsay models can't run it, but a Google TV streamer on HDMI can). 2015 and 2016 TVs can't run TizenBrew, so on those build it yourself (below); TV Settings isn't in the drawer there, since apps can't open the TV's settings.
+The same home screen as a Samsung app (Tizen, 2015 or newer), installed through Samsung's Developer Mode:
 
 1. **On the TV**, open **Apps** and type `1 2 3 4 5` on the remote. Turn **Developer mode** on, type your computer's IP address in **Host PC IP**, and restart the TV.
-2. **On your computer**, download [TizenBrew Installer](https://github.com/reisxd/TizenBrewInstaller/releases/latest), the community's installer for Samsung TVs, open it and connect to your TV.
-3. **Install from GitHub:** type `simbasjungles/free-my-tv`. On 2023 and newer TVs it asks you to sign in to your Samsung account once, to sign the app for your TV.
-4. **Straight to it:** in the TV's settings, under Start Screen Options, turn on **Autorun Last App**: the TV turns on into Free My TV.
-
-This build takes your city from the TV's time zone (change it in *Home Settings* → *City*), and for the trending picks you type your [TMDB key](#the-tmdb-key) in *Home Settings* → *TMDB key*. To build it with your own `config.properties` instead, open the folder in Claude Code and say *"Install Free My TV on my Samsung TV at 192.168.1.50. I live in Lisbon."* It sets up Samsung's tools, and on 2023 and newer TVs you sign in to your Samsung account in the browser to make the certificate. Your signed build installs with `python3 tizen/install.py 192.168.1.50`, which needs only Python: no Tizen Studio, and no Rosetta on Apple Silicon Macs.
+2. Build `python3 tizen/build.py` and install with `python3 tizen/install.py 192.168.1.50` (only Python needed). On 2023 and newer TVs the package has to be signed with your Samsung account: ask your AI agent to set that up.
+3. In the TV's settings, under Start Screen Options, turn on **Autorun Last App**: the TV turns on into Foyer.
 
 ## Settings
 
-The first values come from `config.properties`, created by the first build (Google TV, LG and Samsung use the same file). Most of them can also be changed on the TV, in *Free My TV* → *Home Settings*, and the TV's choice wins:
+The first values come from `config.properties` (created by the first build, never committed). Most can also be changed
+on the TV, in *Home Settings* (↓, then the shortcut), and the TV's choice wins.
 
 | Key | What it does | Default |
 |---|---|---|
 | `tmdb_key` | Your free TMDB key, for the picks | empty |
 | `tmdb_region` | Your country (two letters): which titles are on which app | `US` |
-| `watchmode_key` | Optional, free [Watchmode](https://api.watchmode.com/) key: a pick opens the title's page in its app | empty |
-| `plex_url` and `plex_token` | Optional, your Plex server's `plex.direct` address and token: its newest titles join the picks and open on their page | empty |
-| `jellyfin_url` and `jellyfin_key` | Optional, your Jellyfin server's address and an API key: trending titles in your library and its newest ones join the picks and open Jellyfin. LG and Samsung only | empty |
-| `picks_from` | `all`, or `jellyfin`: the picks are what's popular today, all opening Jellyfin (Litefin when installed), tagged "Jellyfin" when in your library and "Seerr" otherwise. LG and Samsung only | `all` |
-| `anime_tab` | `true` adds an Anime tab: this week's trending anime, then the season airing now, opening Jellyfin when it's in your library, Crunchyroll when it's there, otherwise Jellyfin's app to request it (Seerr). LG and Samsung only | `false` |
-| `performance` | `auto`, `full`, `calm` (only movement animates) or `lite` (no shadows or animations). LG and Samsung only | `auto` |
-| `latitude`, `longitude` | Your city, for the weather and the sunset | New York |
-| `city` | The name on the weather card | `Weather` |
+| `jellyfin_url`, `jellyfin_key` | Your Jellyfin server and an API key: titles in your library open there | empty |
+| `picks_from` | `all`, or `jellyfin`: the picks are what's popular today, opening Jellyfin (Litefin when installed) when in your library and Seerr otherwise | `all` |
+| `anime_tab` | `true` adds an Anime tab: this week's trending anime, then the season airing now | `false` |
+| `ambient_home` | `false` keeps the classic layout: title, tabs and poster cards above the dock | `true` |
+| `hero_card` | Classic layout only: `false` keeps every card narrow | `true` |
+| `performance` | `auto`, `full`, `calm` (only movement animates) or `lite` (no shadows or animations) | `auto` |
+| `latitude`, `longitude`, `city` | Your city, for the weather and the sunset | New York |
+| `language` | `auto` (follows the TV) or a language code (`en`, `de`, `fr`, `ja`…) | `auto` |
+| `temperature`, `theme` | `C`, `F` or `auto`; `auto`, `light` or `dark` | `auto` |
+| `show_crypto`, `currency` | Crypto prices (classic layout's drawer) | `true`, `USD` |
 | `hide_animation` | Leave cartoons and anime out of the picks | `false` |
-| `language` | `auto` (follows the TV), or a language with a [translation](#translations) (`en`, `pt`, `es`, `de`, `ru`, `fr`, `ja`…) | `auto` |
-| `show_crypto` | Show Binance crypto prices on home and screensaver | `true` |
-| `currency` | Crypto prices in `USD`, `EUR`, `BRL`… | `USD` |
-| `temperature` | `C`, `F` or `auto` | `auto` |
-| `theme` | `auto` (dark from sunset to sunrise), `light` or `dark` | `auto` |
-| `disable_assistant` | Also turn off Google Assistant | `false` |
-| `screensaver` | `false` keeps the TV's own screensaver: Free My TV then changes only the home screen and the promo apps (Google TV) | `true` |
-| `hide_services` | Streaming services to leave out of the picks even when their app is on the TV (`netflix`, `prime`, `disney`…), comma separated; for apps the TV ships that you don't subscribe to. It is where the switches in Home Settings › Picks › Picks from start; what you switch on the TV wins. Google TV only | empty |
-| `hide_apps` | Apps to leave out of the shelf, All Apps and the picks, by id or name (part of it), comma separated; for apps the TV ships that can't be uninstalled, like Samsung's built-in Netflix. LG and Samsung only | empty |
-| `shelf_apps` | The shelf's apps in this order, by id or name (part of it), comma separated; changing it wins once over the shelf picked on the TV. On Samsung, a whole app id also brings an app the TV leaves out of its list, like one installed in Developer Mode. LG and Samsung only | empty |
-| `drawer_first` | `true` opens the home screen with the drawer already out (apps in the middle, inputs, weather and prices below), so nothing has to be scrolled to reach the inputs; Back closes it to the full page. For a TV whose streaming apps live on a box, where the picks stay empty. LG and Samsung only | `false` |
-
-Changed something? Run `./build.sh` and install again. Keep `freemytv.keystore`: updates are signed with it.
+| `hide_apps` | Apps to leave out everywhere, by id or name, comma separated | empty |
+| `shelf_apps` | The dock's apps in this order, by id or name; wins once over the dock picked on the TV | empty |
+| `drawer_first` | `true` opens with the apps' drawer already out | `false` |
 
 ### The TMDB key
 
-Free, and it takes two minutes: create an account at [themoviedb.org](https://www.themoviedb.org/signup), then open [Settings → API](https://www.themoviedb.org/settings/api) and request a developer key. Paste the *API Read Access Token* (or the *API Key*) after `tmdb_key=`. It's your key: `config.properties` stays out of git.
-
-On Google TV and Android TV you can also add it on the TV, which the APK from the releases needs: *Home Settings* → *TMDB key*
-shows a QR code. Scan it with your phone (on the same Wi-Fi), paste the key and send it; the TV checks it with TMDB and
-keeps it. The code works once, for 5 minutes, and only while it's on screen. The phone's page is plain HTTP on your own
-Wi-Fi: on a network you don't trust (a hotel's), type the key instead. No phone at hand? *Type it with the remote*: the
-short *API Key* (32 characters) is the easier one to type. A key added on the TV wins over the one in `config.properties`,
-and *Remove the key* goes back to it.
-
-On LG and Samsung you can also type it on the TV, in *Home Settings* → *TMDB key*: the short *API Key* (32 characters) is the easier one to type with the remote. TMDB checks it before it's saved, it stays on the TV, and it wins over the one in `config.properties` (*Remove the key* goes back to that one).
-
-### Opening a title, not just its app (optional)
-
-With a free [Watchmode](https://api.watchmode.com/) key (`watchmode_key=` in `config.properties`), a pick opens its own page in the streaming app instead of the app's home. The free plan (2,500 credits a month) is enough: each title costs two requests the first time and is remembered after that. It works where the app takes the title's web address (tested: Prime Video and JioHotstar); where it doesn't, the pick just opens the app, as without a key.
-
-### Your own photos (optional)
-
-On Google TV and Android TV, with the TV connected over adb (see *Install*), send photos or whole folders from your computer:
-
-```bash
-python3 tools/photos.py <TV IP> beach.jpg hills.jpg Holidays/
-```
-
-They land in the app's own folder on the TV (no permission needed); on Android 11, which keeps adb out of other apps' folders, they go through Free My TV itself. The next time the home screen, the screensaver or Free My TV's settings open, the app imports each one: turned upright, cropped to 16:9, resized for the TV and saved without its GPS and other tags; what was sent is then deleted. The screensaver shows them in the order you sent them, instead of the picks' photos; without a TMDB key, one of them is the home screen's background, a new one every hour. *Home Settings* → *My Photos*: the arrows turn them on or off, OK removes them. Up to 100; JPEG, PNG and WebP, and HEIC on Android 9 and newer.
-
-### Your Jellyfin library (optional, LG and Samsung)
-
-Set `jellyfin_url` (the server's address up to the port, like `http://192.168.1.20:8096`) and `jellyfin_key` (Jellyfin's *Dashboard → API Keys → +*) in `config.properties`, and your library joins the picks, tagged "Jellyfin":
-
-- **Trending in your library.** What's trending this week (the first three pages of TMDB's list) that's on your server shows among the picks, even when no streaming app has it.
-- **Your newest.** The latest six movies and six shows added to the server, with TMDB's photos.
-
-With `picks_from=jellyfin`, the picks leave the streaming apps out: they are what's popular on TMDB today, plus your newest. What's in your library is tagged "Jellyfin"; the rest "Seerr", to request in [Litefin](https://github.com/MoazSalem/litefin), a Jellyfin client with Seerr built in. Where Litefin is installed, the picks open it instead of the official Jellyfin app.
-
-A title that's both on your server and on a streaming app opens Jellyfin. Selecting one opens the Jellyfin app (it can't be opened on a title from outside). Only titles Jellyfin matched with TMDB (it does by default) can join. *Home Settings → Picks from* has a Jellyfin switch. If the server can't be reached, the other picks load as usual. The API key gives full access to your server and is built into the app on the TV: keep it private.
-
-### Your Plex library (optional)
-
-Set `plex_url` and `plex_token` in `config.properties`, and one of the newest movies and one of the newest shows of your Plex server (another one each time the list is made, a few times a day, among the latest 8 of each kind) join the picks, with their own poster and backdrop, tagged "Plex". A tab shows at most one. Selecting one opens the title's page in the Plex app. If the server can't be reached when the list is made, its titles are left out.
-
-This is for Google TV and Android TV, and it needs the TMDB key and at least one streaming app on the TV: without those no picks come at all, Plex included.
-
-- **`plex_url`** is the server's own `plex.direct` address, which has a valid certificate (the TV checks it as for any site; plain `http` and any other address are ignored, so a typo never sends your token anywhere). It looks like `https://192-168-1-20.0123456789abcdef0123456789abcdef.plex.direct:32400`: your server's local IP with dashes, then its id. Open any item in Plex's web app, *Get Info → View XML*, and the address bar has it, before `/library/...`.
-- **`plex_token`** is on the same address, after `X-Plex-Token=`. It gives access to your Plex account, and any app on the TV can read the APK it is built into, so use the token of a Plex Home *managed user* with access to your libraries, not your own, and never commit it.
-
-The TV talks to your server directly on your network. If the server can't be reached, the other picks load as usual.
-
-## Going back
-
-On the TV: *Free My TV* → *Home Screen* → *Original*. The factory home screen, screensaver and every app come back exactly as they were. If the new home screen ever crashes three times in five minutes, it switches back by itself.
-
-To remove it for good, switch to *Original* first, then uninstall *Free My TV* (Settings → Apps). Uninstalled it while it was on? Install it again and pick *Original*: the list of what it turned off is kept in the TV's settings, so everything comes back.
-
-## What it changes
-
-- It becomes the home screen and, unless `screensaver=false`, the screensaver.
-- It turns off, without uninstalling:
-  - the stock home screen and screensaver (the screensaver stays with `screensaver=false`);
-  - Google TV's recovery home, Play Games and YouTube Music;
-  - on TCL TVs, the TCL Channel, messages, store demo, hotel menu, manuals, mirroring and logging apps;
-  - on Philco TVs, AI PONT (promo channels and app downloads) and the manual;
-  - on Multilaser TVs, Anoki's screen-content recognition (ACR), the store demo and the manual;
-  - on KTC-made TVs (NextStar), Anoki's screen-content recognition (ACR), the store demo and the manual;
-  - Google Assistant, only with `disable_assistant=true`.
-- On Google TV, the Assistant's results for films and shows come from Google TV's home app, which is off in Free My TV mode: asking it to play a show can end in "Sorry, I don't understand", and a search can show only YouTube videos. Opening apps, questions and apps' own voice search (YouTube's, for one) still work; *Original* brings it all back.
-- On TCL TVs, the remote's Netflix, YouTube and Prime buttons keep working through a small accessibility service that only reads those buttons. Pick what each one opens in *Free My TV* → *Remote Buttons*; *Original* turns the service off. On TCL TVs with Android 11 the service stays off, since with it the TV moved the volume two steps per press: there the buttons work on Free My TV's home screen. On Vestel-made TVs (F&U and other store brands) and Xiaomi (Formovie) projectors the same goes for the Netflix button, and on KTC-made TVs (NextStar) for the Tabii button. On Sony TVs, the BRAVIA CORE, Netflix, Disney+, Prime Video, YouTube and Crunchyroll buttons (and Google Play, on remotes that have it) can each open the app you pick, or keep Sony's default. On Xiaomi TVs whose remote has a Mi button instead of Home, that button opens Free My TV instead of PatchWall (or, if you pick it, PatchWall as before, or another app). On Xiaomi TVs, the YouTube button opens YouTube again (Google TV's home screen answered it), and the PatchWall button can open the app you pick. On Xiaomi TVs sold in Russia, the same goes for the Okko, VK, Rutube, KION, Wink and IVI buttons, which keep Xiaomi's default until you pick another app. On Hisense TVs, the Prime Video, YouTube, Disney+, All Apps, Settings and profile buttons, which Google TV's home screen answered, open what you pick (All Apps opens Free My TV's own; Netflix stays with the TV). On any of these TVs, setting every button to *Nothing* (or the brand's default) turns the service off.
-- With *Home Settings* → *Now Playing widget* on (it starts off), what an app is playing shows in place of the prices while it plays, on the home screen and the screensaver. Android hands that only to a notification listener, so turning the widget on allows ours through the TV's ADB; turning it off, *Original* and the switch back after crashes take it away. Where the TV refuses it, the row says so.
-- On HY300 projectors, whose stock home screen was the only way to them, the bottom drawer gets *Keystone* (keystone, zoom and projection mode) and *Screen Mirroring* (the projector's Miracast receiver), and HDMI opens through the projector's own player.
-- *Free My TV* → *Sleep Timer* turns the TV off after 5 minutes to 4 hours, with the minutes left over any app (top center, or the corner you pick). It presses the remote's Sleep key through the TV's own ADB, so it works in Free My TV mode; *Original* stops it.
-- Picture, sound, inputs, remote pairing, Google services and the Play Store are on a protected list, checked before every change, and so are Android's own pieces and factory menus. Before anything goes off, the TV is asked whether its inputs or its remote's Input key depend on it; those stay on.
-- On Google TV, the setup app goes off before the stock home screen and comes back after it, so its recovery screen never takes over the Home button in between.
-- Apps that saved a Wi-Fi network are never turned off, since Android would erase the network. If the TV's first setup saved yours, the switch asks you to forget the network and connect again in Settings first (saved networks out of range don't show there; Claude Code can remove them).
-
-## Any TV
-
-Free My TV runs on Google TV and Android TV: TCL, Sony, Hisense, Philips, Xiaomi, Vestel-made TVs (F&U), KTC-made TVs (NextStar) and more, plus streamers like Chromecast with Google TV, the Google TV Streamer, onn 4K, the Xiaomi Mi TV Stick and NVIDIA Shield, and projectors like the Wanbo T2 Ultra. And on [LG](#lg-tvs-webos) and [Samsung](#samsung-tvs-tizen) TVs, as an app.
-
-**Any other TV:** plug a Google TV streamer into HDMI and free that one. Same steps, same home screen.
-
-**A different brand or model:** ask Claude. Free My TV is made to be adapted by AI. Open the folder in Claude Code and say *"set it up for my Sony"*: it reads your TV, finds its home screen and its promo apps, updates the lists below and walks you through a test. [CLAUDE.md](CLAUDE.md) tells it how.
-
-| What | Where |
-|---|---|
-| Apps to turn off | `DEBLOAT` in [`HomeMode.java`](app/src/io/freemytv/HomeMode.java) |
-| Apps never to touch | `PROTECTED` in the same file |
-| Apps on the shelf | `SHELF` in [`HomeApps.java`](app/src/io/freemytv/HomeApps.java) |
-| Your brand's live TV app | `LIVE_TV_APPS` in the same file |
-
-## Make it yours
-
-It's your code, and Claude Code finds its way around it. Try:
-
-- *"Add Crunchyroll to the shelf."*
-- *"Show the prices in euros."*
-- *"Add Catalan."*
-- *"Switch to the night look an hour after sunset."*
+Free, and it takes two minutes: create an account at [themoviedb.org](https://www.themoviedb.org/signup), open
+[Settings → API](https://www.themoviedb.org/settings/api) and request a developer key. Put it after `tmdb_key=`, or type
+it on the TV in *Home Settings* → *TMDB key* (the short 32-character *API Key* is easier with a remote).
 
 ## How it works
 
-- **A plain Android app, no Gradle, no libraries.** [`build.sh`](build.sh) runs aapt2 → javac → d8 → zipalign → apksigner and makes a 2 MB APK.
-- **It uses the TV's own ADB, from inside the TV.** The app connects to `127.0.0.1:5555` with its own key (that's the *Allow USB debugging?* prompt) and runs the same commands you would: `cmd package set-home-activity`, `settings put secure screensaver_components`, `pm disable-user`. Nothing listens to the network.
-- **Drawn by hand on one Canvas**, with Android 13 shaders for the frosted glass and the sky (plain fills on Android 8 to 12, with lighter shadows and no GPU layers on 8 to 11 for their older GPUs).
-- **A safety net.** A watchdog in a separate process brings back the stock home screen after three crashes in five minutes, and a boot check keeps your choice after TV updates.
-- **On LG and Samsung, the same design in plain HTML, CSS and JavaScript** ([`web/`](web)), written for the Chromium of older TVs, with no frameworks. [`webos/build.py`](webos/build.py) packs it with `config.properties` into an `.ipk` without LG's tools, and [`webos/install.py`](webos/install.py) installs it through Developer Mode; on LG it lists and opens apps through the TV's own service bus (Luna), as LG's launcher does. [`tizen/build.py`](tizen/build.py) packs the same app into a Samsung `.wgt`, which uses Tizen's web APIs for the apps and the inputs. To preview it on a computer: `python3 webos/build.py --preview`, then open `out/webos/index.html` (a stand-in lists sample apps).
-- **Data** from TMDB (trending titles, new releases and which app streams what in your country), Open-Meteo (forecast, sunrise and sunset), and optionally Binance (24-hour prices when `show_crypto=true`).
+- **Plain HTML, CSS and JavaScript** ([`web/`](web)), written for the Chromium of older TVs (ES5, no CSS variables, no frameworks). Only transform and opacity animate, and the background photos are plain images, so a TV's GPU keeps up.
+- [`webos/build.py`](webos/build.py) packs it with `config.properties` into an `.ipk` without LG's tools; [`webos/install.py`](webos/install.py) installs it through Developer Mode, or over root SSH. On LG it lists and opens apps through the TV's service bus (Luna), as LG's launcher does. [`tizen/build.py`](tizen/build.py) makes the Samsung `.wgt`.
+- [`webos/root/`](webos/root): on a rooted LG TV, the watcher (Node, started at boot) that makes Foyer the home screen and uninstalls apps for it.
+- **Data** from TMDB (picks, which app streams what), your Jellyfin server, and Open-Meteo (forecast, sunrise and sunset).
+- To preview it on a computer: `python3 webos/build.py --preview`, then open `out/webos/index.html`.
 
 | File | What it is |
 |---|---|
-| [`HomeView.java`](app/src/io/freemytv/HomeView.java) | The home screen |
-| [`HomeMode.java`](app/src/io/freemytv/HomeMode.java) | Switching between Free My TV and Original |
-| [`Adb.java`](app/src/io/freemytv/Adb.java) | The TV's own ADB, from inside the TV |
-| [`Recs.java`](app/src/io/freemytv/Recs.java) | The picks (TMDB) |
-| [`KeyPage.java`](app/src/io/freemytv/KeyPage.java), [`Qr.java`](app/src/io/freemytv/Qr.java) | The TMDB key sent from a phone, and its QR code |
-| [`HomeData.java`](app/src/io/freemytv/HomeData.java) | Weather and prices |
-| [`HomeApps.java`](app/src/io/freemytv/HomeApps.java) | The shelf, inputs and All Apps |
-| [`DreamView.java`](app/src/io/freemytv/DreamView.java) | The screensaver |
-| [`SettingsActivity.java`](app/src/io/freemytv/SettingsActivity.java) | The settings screen (the app's icon) |
-| [`Prefs.java`](app/src/io/freemytv/Prefs.java) | Settings changed on the TV |
-| [`RemoteKeys.java`](app/src/io/freemytv/RemoteKeys.java) | The remote's app buttons (TCL, Sony, Xiaomi and others) |
-| [`Watchdog.java`](app/src/io/freemytv/Watchdog.java) | The safety net |
-| [`web/home.js`](web/home.js) | The home screen on LG TVs |
-| [`web/tv.js`](web/tv.js) | The TV's apps and inputs, on LG and Samsung |
-| [`webos/build.py`](webos/build.py), [`webos/install.py`](webos/install.py) | The LG app package and its install |
-| [`tizen/build.py`](tizen/build.py) | The Samsung app package |
+| [`web/home.js`](web/home.js) | The home screen: ambient view, carousel, dock, apps, menus, settings |
+| [`web/data.js`](web/data.js) | The picks (TMDB, Jellyfin), where each opens (`SERVICES`), the weather |
+| [`web/tv.js`](web/tv.js) | The TV's apps, inputs and keys, on LG and Samsung |
+| [`webos/root/launcher.js`](webos/root/launcher.js) | The rooted LG TV's watcher |
 
-The website ([freemytv.io](https://freemytv.io)) is in [`docs/`](docs): plain HTML, CSS and JS on GitHub Pages.
+The Google TV and Android TV app inherited from Free My TV is still in [`app/`](app) (renamed, built with
+[`build.sh`](build.sh)), but Foyer doesn't develop it further: for Google TV, use
+[Free My TV](https://github.com/simbasjungles/free-my-tv).
 
 ## Translations
 
-On Google TV, LG and Samsung, each language is one file, [`app/assets/i18n/<lang>.json`](app/assets/i18n), keyed by the
-English text in the code. *Automatic* follows the TV's language and uses any language that has a file (English otherwise); *Home
-Settings* → *Language* lists them all. Today: English, Portuguese, Spanish, German, French, Italian, Dutch, Polish,
-Swedish, Danish, Norwegian, Finnish, Czech, Romanian, Turkish, Russian, Ukrainian, Greek, Japanese, Korean, Simplified
-and Traditional Chinese, Hindi, Indonesian, Vietnamese and Thai. Portuguese, Spanish, German, Russian, Thai and Turkish were translated by hand and are the
-reference (fix them by hand); the others were machine-made, and corrections from native speakers are welcome.
-
-- **Add a language:** `python3 tools/translate.py --new ca`, then fill `app/assets/i18n/ca.json` by hand, or with
-  `ANTHROPIC_API_KEY` set, `python3 tools/translate.py --fill --lang ca` (only the strings go to the API).
-- **After changing text in the code:** `python3 tools/translate.py` lists what each language lacks; `--fill` translates
-  only that (the hand-translated ones, Portuguese, Spanish, German, Russian, Thai and Turkish, are left for a person
-  unless `--lang` names them), `--prune` drops strings the code no longer uses.
-  Run `python3 tools/translate.py --check` to validate all catalogues without writing files.
-- Text built at runtime has placeholders (`"{n} min ago"`), so each language puts the words in its own order. A key
-  like `"unit|Automatic"` is the same English in another place, where a language may need another word.
-- Counts have plural forms: `"plural|one:{n} season|other:{n} seasons"` is translated with one form per plural
-  category the language uses (Russian `"one:{n} сезон|few:{n} сезона|many:{n} сезонов|other:{n} сезона"`, Japanese
-  just `"other:{n}シーズン"`), and Android's plural rules pick the one for each number.
-- **Limits:** right-to-left languages (Arabic, Hebrew, Persian) would need the layout mirrored, so they aren't there
-  yet. Chinese, Japanese, Korean and Hindi are drawn with the TV's system font (Inter has no such letters).
+Each language is one file, [`app/assets/i18n/<lang>.json`](app/assets/i18n), keyed by the English text in the code; 26
+languages today. After changing text, `python3 tools/translate.py --check` lists what each language lacks.
 
 ## Privacy
 
-No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with the coordinates you set, or your time zone's main city), and Binance only when `show_crypto=true`, Watchmode only when you set a `watchmode_key`, and your Plex server only when you set a `plex_url`. On Google TV and Android TV, the APK from the release asks GitHub (api.github.com) once a week, or when you press *Updates*, for the latest release, and when there's a newer one downloads it from github.com and GitHub's download server (release-assets.githubusercontent.com); a build you made yourself asks only when you press *Updates*. The *Now Playing widget* reads what apps are playing (title, artist, the app) through a notification listener, the only way Android shares it: Free My TV allows the listener only while the widget is on, never reads a notification with it, and asks Android to unbind it as soon as it connects, so it stays unbound. What's playing never leaves the TV. While *Home Settings* → *TMDB key* shows its QR code (5 minutes at most), the TV answers on your home network at that code's address, for one key; the key goes to TMDB only, to check it. Your settings stay on your computer and your TV.
+No accounts, no analytics, no tracking. The TV talks to TMDB, Open-Meteo (with your city's coordinates), your Jellyfin
+server when you set one, and Binance only when `show_crypto=true`. Your settings stay on your computer and your TV.
 
 ## Credits
 
-- Built with [Claude Code](https://claude.com/claude-code).
-- The LG version builds on what [@danielthejoker18](https://github.com/danielthejoker18) found in [FreeMyTvWebOS](https://github.com/danielthejoker18/FreeMyTvWebOS) (MIT): installing through Developer Mode and opening apps through the TV's service bus.
-- On Samsung TVs it installs with [TizenBrew Installer](https://github.com/reisxd/TizenBrewInstaller) by [@reisxd](https://github.com/reisxd).
+- Based on [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT), by its contributors.
+- The LG version builds on what [@danielthejoker18](https://github.com/danielthejoker18) found in [FreeMyTvWebOS](https://github.com/danielthejoker18/FreeMyTvWebOS) (MIT).
+- [Litefin](https://github.com/MoazSalem/litefin) by [@MoazSalem](https://github.com/MoazSalem); [LG Input Hook](https://github.com/Simon34545/lginputhook); the [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel).
+- The ambient home was inspired by ProjectHiten, a home replacement for rooted LG TVs shown on r/webos.
 - This product uses the TMDB API but is not endorsed or certified by [TMDB](https://www.themoviedb.org/).
-- Links to the titles in the streaming apps by [Watchmode](https://api.watchmode.com/).
-- Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0). Prices from the [Binance](https://www.binance.com/) public API.
-- Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0). Font: [Inter](https://rsms.me/inter/) (SIL OFL 1.1). Coin logos: [cryptocurrency-icons](https://github.com/spothq/cryptocurrency-icons) (CC0). Samsung app logos: [Simple Icons](https://simpleicons.org) (CC0).
-- The QR code encoder follows Project Nayuki's [QR Code generator](https://www.nayuki.io/page/qr-code-generator-library) (MIT).
-- Not affiliated with Google, TCL, LG, Samsung or any streaming service. App names and logos belong to their owners.
+- Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).
+- Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0). Font: [Inter](https://rsms.me/inter/) (SIL OFL 1.1).
+- Built with [Claude Code](https://claude.com/claude-code).
+- Not affiliated with LG, Samsung, Google, Jellyfin or any streaming service. App names and logos belong to their owners.
 
 ## License
 

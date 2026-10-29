@@ -36,7 +36,7 @@ var Place = (function () {
 
 var Prefs = (function () {
   'use strict';
-  var KEY = 'fmtv.prefs';
+  var KEY = 'foyer.prefs';
   var v = {};
   try { v = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
@@ -90,8 +90,8 @@ var Prefs = (function () {
 var Data = (function () {
   'use strict';
 
-  function store(key, value) { try { localStorage.setItem('fmtv.' + key, JSON.stringify(value)); } catch (e) {} }
-  function stored(key) { try { return JSON.parse(localStorage.getItem('fmtv.' + key)); } catch (e) { return null; } }
+  function store(key, value) { try { localStorage.setItem('foyer.' + key, JSON.stringify(value)); } catch (e) {} }
+  function stored(key) { try { return JSON.parse(localStorage.getItem('foyer.' + key)); } catch (e) { return null; } }
 
   /** GET a JSON document; done(error, json). */
   function get(url, headers, done) {
@@ -370,7 +370,7 @@ var Data = (function () {
   /** The library's movies and shows, newest first (a few MB at most, every 6 hours); done() also when it fails. */
   function fetchLibrary(done) {
     if (!JF_URL || !JF_KEY) { done(); return; }
-    var auth = 'MediaBrowser Client="Free My TV", Device="TV", DeviceId="freemytv", Version="1", Token="' + JF_KEY + '"';
+    var auth = 'MediaBrowser Client="Foyer", Device="TV", DeviceId="foyer", Version="1", Token="' + JF_KEY + '"';
     get(JF_URL + '/Items?Recursive=true&IncludeItemTypes=Movie,Series&Fields=ProviderIds&SortBy=DateCreated&SortOrder=Descending'
         + '&EnableImages=false&EnableUserData=false', {Authorization: auth, Accept: 'application/json'}, function (err, res) {
       if (err || !res || !res.Items) { done(); return; }
