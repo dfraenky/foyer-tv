@@ -46,6 +46,23 @@ var TV = (function () {
     bridge.call(uri, JSON.stringify(params || {}));
   }
 
+  // webos/root/launcher.js on a rooted LG TV: GET says it's there, POST {id} uninstalls. Plain text, so the browser sends
+  // no preflight; the watcher refuses requests with a website's origin (an installed app's page sends file:// or none).
+  var ROOT_PORT = 7172;
+
+  function rootCall(method, body, done) {
+    var x = new XMLHttpRequest(), finished = false;
+    function finish(ok) { if (!finished) { finished = true; done(ok); } }
+    try {
+      x.open(method, 'http://127.0.0.1:' + ROOT_PORT + '/v1/' + (method === 'POST' ? 'uninstall' : ''), true);
+      x.timeout = method === 'POST' ? 60000 : 2000;
+      x.setRequestHeader('Content-Type', 'text/plain');
+      x.onload = function () { finish(x.status === 200); };
+      x.onerror = x.ontimeout = function () { finish(false); };
+      x.send(body || null);
+    } catch (e) { finish(false); }
+  }
+
   // LG's own screensaver asks every subscribed app first. While Free My TV is on screen and its own screensaver will
   // take over (`hold`, from home.js), it says no; otherwise, and in the background, the TV's runs as before.
   var saverBridge = null;
@@ -443,6 +460,20 @@ var TV = (function () {
 
     /** LG's own home screen, for the drawer: on a rooted TV Free My TV takes Home (webos/root), and this is the way back. */
     lgHome: webos ? 'com.webos.app.home' : '',
+
+    /**
+     * Uninstalling apps, on a rooted LG TV: the page may not (the TV denies appInstallService), so webos/root's watcher
+     * does it, on 127.0.0.1:ROOT_PORT. done(true) when it answers.
+     */
+    canUninstall: function (done) {
+      if (!webos) { done(false); return; }
+      rootCall('GET', '', function (ok) { done(ok); });
+    },
+
+    /** done(ok): the app is going (the TV takes a few seconds to drop it from its list). */
+    uninstall: function (id, done) {
+      rootCall('POST', JSON.stringify({id: id}), done);
+    },
 
     /** Installed apps, as the TV's launcher lists them: [{id, title, icon, color}]. */
     apps: function (done) {

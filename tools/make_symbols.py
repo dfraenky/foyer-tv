@@ -19,6 +19,7 @@ MAP = {
     "chevron_down": ("keyboard_arrow_down", 0), "sunrise": ("wb_twilight", 1), "sunset": ("wb_twilight", 1),
     "live_tv": ("live_tv", 1), "bitcoin": ("currency_bitcoin", 0),
     "keystone": ("settings_overscan", 1), "cast": ("cast", 1),
+    "move": ("open_with", 0), "add": ("add", 0), "remove": ("remove", 0), "delete": ("delete", 1), "close": ("close", 0),
 }
 
 

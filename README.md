@@ -20,7 +20,8 @@ Open source. Built with Claude Code. One button to undo.
 > - **Jellyfin, Litefin and Seerr.** Trending titles in your Jellyfin library and its newest join the picks (`jellyfin_url`, `jellyfin_key`). With `picks_from=jellyfin` the picks are what's popular today: in your library they open [Litefin](https://github.com/MoazSalem/litefin) (or Jellyfin), the rest open Litefin to request them through its Seerr integration. With a Litefin build that takes launch parameters ([MoazSalem/litefin#559](https://github.com/MoazSalem/litefin/pull/559)), a pick opens on its own page.
 > - **Anime.** `anime_tab=true` adds an Anime tab, and anime among the picks in Explore: in Jellyfin, on Crunchyroll, or to request.
 > - **Smooth on the C1.** It draws the page at twice its size: `performance=auto` turns shadows and animations off there (20 fps before, 58 now); `calm` and `full` are there too.
-> - **Ambient home.** While the shelf has focus, a pick's photo fills the screen, sharp, a new one every 45 seconds, with the time, the date and the weather; ↑ brings the picks back. 60 fps on the C1. `ambient_home=false`, or Home Settings, turns it off.
+> - **Ambient home.** While the shelf has focus, a pick's photo fills the screen, sharp, a new one every 45 seconds, with the time, the date and the weather. ↑ is a carousel: ← → go through the tab's picks over the whole screen, with their story; the tabs sit at the top right. ↓ shows the inputs and shortcuts, then every app. 60 fps on the C1. `ambient_home=false`, or Home Settings, turns it off.
+> - **An app's menu.** Hold OK on an app on the shelf or among all apps: Move it (← → ↑ ↓, OK drops it), put it on or off the shelf, or uninstall it (on a rooted TV with the watcher below).
 > - **Quicker start.** The shelf shows at once from the apps the TV listed last time, and coming back from an app no longer rebuilds it.
 > - **Narrow cards.** `hero_card=false` keeps every pick narrow; the focused one shows its app first, and a title or line that doesn't fit runs like a conveyor.
 > - Sharper Crunchyroll, Spotify and YouTube logos on the shelf, and Litefin's on black.
@@ -141,6 +142,7 @@ python3 webos/install.py 192.168.1.50 --root --launcher
 - **Closing an app** comes back to Free My TV, and so does anything else that brings up LG's home screen. A small watcher started at boot (`webos/root/`, in `/var/lib/freemytv`) does it.
 - **Turning the TV on** opens Free My TV instead of Live TV. An HDMI input the TV wakes up on stays, for a console or player that turned it on.
 - **The Home key** opens Free My TV, through [LG Input Hook](https://github.com/Simon34545/lginputhook) (install it from the Homebrew Channel and open it once). Without it, Home in an app shows LG's home screen for a moment, then Free My TV.
+- **Uninstalling** from an app's menu (hold OK) goes through the same watcher: the TV doesn't let the page do it. It listens on 127.0.0.1:7172, refuses websites and never removes LG's own apps or the Homebrew Channel.
 - **LG's home screen** is still there: *LG Home* in Free My TV's drawer opens it and stays.
 
 `--no-launcher` gives Home and the closed apps back to LG's home screen. Tested on an LG OLED C1 (webOS 6.5.3).

@@ -58,6 +58,8 @@ var Prefs = (function () {
     /** Picks per tab: 3 (as it was) up to 6. */
     cards: function () { var n = pick('cards', 3); return n < 3 ? 3 : n > 6 ? 6 : n; },
     shelf: function () { return pick('shelf', null); },
+    /** Every app's order in the drawer (ids), as moved on the TV; the rest follow as the TV lists them. */
+    order: function () { return pick('order', []); },
     /** The shelf_apps of the build that last set the shelf, so a new one wins once over the TV's choice. */
     shelfConfig: function () { return pick('shelfConfig', ''); },
     /** The weather's city, picked on the TV (Home Settings → City), or config.properties' (or the time zone's). */
@@ -400,7 +402,7 @@ var Data = (function () {
   function sourceStamp() {
     var s = KEY.length + ':' + KEY.slice(-6) + ':' + REGION + (CONFIG.hideAnimation ? ':no-animation' : '');
     for (var i = 0; i < SERVICES.length; i++) s += usable(SERVICES[i][1]) ? '1' : '0';
-    return s + (JF_URL ? ':' + JF_URL : '') + (JF_ONLY ? ':jellyfin-only' : '') + (CONFIG.animeTab ? ':anime-season' : '');
+    return s + ':overview' + (JF_URL ? ':' + JF_URL : '') + (JF_ONLY ? ':jellyfin-only' : '') + (CONFIG.animeTab ? ':anime-season' : '');
   }
 
   function franchise(title) {
@@ -484,6 +486,7 @@ var Data = (function () {
       var best = bestBackdrop(o.images);
       if (best) p.backdrop = best;
       if (o.poster_path) p.poster = o.poster_path;
+      p.overview = (o.overview || '').slice(0, 420);   // the ambient home's carousel
       var parts = [];
       if (p.kind === 'tv') parts.push(tr('Series'));
       if (o.genres && o.genres.length) {

@@ -616,6 +616,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: -webkit-linear-gradient(left, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.18) 48%, rgba(0, 0, 0, 0) 70%);
   background: linear-gradient(to right, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.18) 48%, rgba(0, 0, 0, 0) 70%);
 }
+#wall .top {
+  background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0) 26%);
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0) 26%);
+}
 #wall .low {
   background: -webkit-linear-gradient(bottom, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.3) 30%, rgba(0, 0, 0, 0) 52%);
   background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0.3) 30%, rgba(0, 0, 0, 0) 52%);
@@ -641,6 +645,51 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32), inset 0 1.5px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 .ambient .more { color: rgba(255, 255, 255, 0.8); }
+/* The drawer over the photo: darker, so its keys and the apps read. */
+#wall .dim { background: #000; opacity: 0; -webkit-transition: opacity 0.38s; transition: opacity 0.38s; }
+.drawer-open #wall .dim { opacity: 0.62; }
+.ambient #sky .lift { display: none; }
+
+/* ↑ from the shelf: the carousel. The picks of the tab, one at a time over the whole screen (← →), their title, details
+   and story above the shelf; the tabs at the top right; the clock stays. */
+#ambient { height: 700px; }
+#ambient .what, #ambient .hero { position: absolute; left: 0; bottom: 0; }
+#ambient .what { top: auto; bottom: 34px; }
+#ambient .hero { width: 1180px; bottom: 30px; display: none; }
+.hero-on #ambient .what { display: none; }
+.hero-on #ambient .hero { display: block; }
+#ambient .hero .t { font-size: 76px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ambient .hero .m { font-size: 30px; font-weight: 500; margin-top: 14px; color: rgba(255, 255, 255, 0.72); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ambient .hero .o { font-size: 27px; line-height: 1.4; margin-top: 16px; max-height: 114px; overflow: hidden; color: rgba(255, 255, 255, 0.86);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+#ambient .hero .dots { margin-top: 22px; height: 12px; }
+#ambient .hero .dots span { display: inline-block; width: 12px; height: 12px; border-radius: 6px; margin-right: 12px; background: rgba(255, 255, 255, 0.35); }
+#ambient .hero .dots span.on { width: 36px; background: #FFF; }
+.ambient #title, .ambient #cards, .ambient #buttons, .ambient #quotes, .ambient #clock { display: none; }
+.ambient.hero-on #top { opacity: 1; visibility: visible; }
+.ambient #tabs { left: auto; right: 80px; top: 84px; }
+.ambient.drawer-open #top { opacity: 0; }
+
+/* ↓ from the shelf: the inputs and shortcuts, then every app (the drawer scrolls with the focus). */
+#drawer .all-title { top: 700px; }
+.drawer-open #drawer .cell { pointer-events: auto; }
+/* A white ring as a border, not a shadow: lite (tv.js) turns shadows off. */
+#drawer .cell.focus .face::before, .cell.moving .face::before, .tile.moving::before {
+  content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; border: 4px solid #FFF; border-radius: 22px; z-index: 1; }
+.drawer-open #ambient { opacity: 0; visibility: hidden; }
+.menu-on #ambient .what { opacity: 0; }
+
+/* Held OK on an app: its menu, next to it. Moving: the app lifted with a white ring until OK drops it. */
+#appmenu { position: absolute; width: 440px; padding: 14px 0; border-radius: 28px; color: #FFF; z-index: 5; display: none;
+  background: #1C1C1E !important; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+#appmenu.on { display: block; }
+#appmenu .head { padding: 10px 30px 14px; font-size: 24px; font-weight: 600; color: rgba(255, 255, 255, 0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#appmenu .item { margin: 0 12px; height: 68px; line-height: 68px; padding: 0 20px; border-radius: 16px; font-size: 28px; font-weight: 500; white-space: nowrap; }
+#appmenu .item .sym { width: 30px; height: 30px; vertical-align: -6px; margin-right: 18px; }
+#appmenu .item.focus { background: #F5F5F7; color: #1C1C1E; }
+#appmenu .item.warn { color: #FF6961; }
+#appmenu .item.warn.focus { background: #FF453A; color: #FFF; }
+.tile.moving { -webkit-transform: scale(1.2) translateY(-14px); transform: scale(1.2) translateY(-14px); }
 
 /* Tizen 2 and 1 GB TVs (see tv.js): no shadows or animations; their GPUs can't keep up while the focus moves. */
 .lite * { box-shadow: none !important; -webkit-transition: none !important; transition: none !important; }

@@ -127,6 +127,8 @@ stays, and Free My TV opens with a long press of a number key.
    to the front, unless Free My TV was in front just before (the drawer's *LG Home*), and when the TV wakes to Live
    TV or LG's home (seen in front while `getPowerState` still says standby, seconds before Active; Screen Saver counts
    as on; an HDMI input stays); LG Input Hook's keybinds get the Magic Remote's Home (uinput code 773).
+   The watcher also uninstalls apps for the page (an app's menu, OK held), on 127.0.0.1:7172: `remove` only takes the
+   job and says yes even for a missing app, so it checks with `getAppInfo` until the app is gone.
    `--no-launcher` takes all of it back. Stop processes by pid, never `pkill -f` a path: it also matches the SSH
    shell that names it. Over SSH, `luna-send -n 1` prints nothing without a terminal; `-i` in the background does.
 8. **Empty shelf on webOS 3** (user agent Chrome 38): the app can't list the TV's apps there (`listLaunchPoints`
