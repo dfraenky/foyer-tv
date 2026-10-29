@@ -137,6 +137,7 @@ On a TV rooted with the [webOS Homebrew Channel](https://github.com/webosbrew/we
 python3 webos/install.py 192.168.1.50 --root --launcher
 ```
 - **Closing an app** comes back to Free My TV, and so does anything else that brings up LG's home screen. A small watcher started at boot (`webos/root/`, in `/var/lib/freemytv`) does it.
+- **Turning the TV on** opens Free My TV instead of Live TV. An HDMI input the TV wakes up on stays, for a console or player that turned it on.
 - **The Home key** opens Free My TV, through [LG Input Hook](https://github.com/Simon34545/lginputhook) (install it from the Homebrew Channel and open it once). Without it, Home in an app shows LG's home screen for a moment, then Free My TV.
 - **LG's home screen** is still there: *LG Home* in Free My TV's drawer opens it and stays.
 
