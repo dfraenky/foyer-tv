@@ -10,6 +10,7 @@
  "Added to the shelf: {app}": "पसंदीदा ऐप में जोड़ा गया: {app}",
  "All Apps": "सभी ऐप",
  "All Apps button": "सभी ऐप बटन",
+ "Ambient home": "एम्बिएंट होम",
  "Android didn't accept the new home screen": "Android ने नई होम स्क्रीन स्वीकार नहीं की",
  "Anime": "एनीमे",
  "Automatic": "अपने-आप",
@@ -75,6 +76,7 @@
  "KION button": "KION बटन",
  "Keystone": "कीस्टोन",
  "L:{min}": "न्यूनतम {min}",
+ "LG Home": "LG होम",
  "Language": "भाषा",
  "Light": "लाइट",
  "Links to the titles by Watchmode.": "टाइटल के लिंक: Watchmode.",
@@ -303,6 +305,5 @@
  "{n} ms": "{n} ms",
  "{time} left": "{time} बाकी",
  "{version} is out: build it again": "{version} आ गया है: इसे फिर से बनाएँ",
- "← → to move · OK to drop · Back to cancel": "← → खिसकाएँ · OK छोड़ें · वापस रद्द करें",
- "LG Home": "LG होम"
+ "← → to move · OK to drop · Back to cancel": "← → खिसकाएँ · OK छोड़ें · वापस रद्द करें"
 }

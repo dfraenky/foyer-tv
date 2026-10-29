@@ -10,6 +10,7 @@
  "Added to the shelf: {app}": "Lisätty suosikkisovelluksiin: {app}",
  "All Apps": "Kaikki sovellukset",
  "All Apps button": "Kaikki sovellukset -painike",
+ "Ambient home": "Tunnelmakotinäkymä",
  "Android didn't accept the new home screen": "Android ei hyväksynyt uutta aloitusnäyttöä",
  "Anime": "Anime",
  "Automatic": "Automaattinen",
@@ -75,6 +76,7 @@
  "KION button": "KION-painike",
  "Keystone": "Keystone",
  "L:{min}": "A:{min}",
+ "LG Home": "LG:n aloitusnäyttö",
  "Language": "Kieli",
  "Light": "Vaalea",
  "Links to the titles by Watchmode.": "Linkit nimikkeisiin: Watchmode.",
@@ -303,6 +305,5 @@
  "{n} ms": "{n} ms",
  "{time} left": "{time} jäljellä",
  "{version} is out: build it again": "{version} on julkaistu: rakenna se uudelleen",
- "← → to move · OK to drop · Back to cancel": "← → siirrä · OK pudota · Takaisin peruuta",
- "LG Home": "LG:n aloitusnäyttö"
+ "← → to move · OK to drop · Back to cancel": "← → siirrä · OK pudota · Takaisin peruuta"
 }

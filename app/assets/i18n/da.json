@@ -10,6 +10,7 @@
  "Added to the shelf: {app}": "Føjet til favoritapps: {app}",
  "All Apps": "Alle apps",
  "All Apps button": "Alle apps-knap",
+ "Ambient home": "Ambient-startskærm",
  "Android didn't accept the new home screen": "Android accepterede ikke den nye startskærm",
  "Anime": "Anime",
  "Automatic": "Automatisk",
@@ -75,6 +76,7 @@
  "KION button": "KION-knap",
  "Keystone": "Keystone",
  "L:{min}": "Min. {min}",
+ "LG Home": "LG-startskærm",
  "Language": "Sprog",
  "Light": "Lyst",
  "Links to the titles by Watchmode.": "Links til titlerne fra Watchmode.",
@@ -303,6 +305,5 @@
  "{n} ms": "{n} ms",
  "{time} left": "{time} tilbage",
  "{version} is out: build it again": "{version} er ude: byg den igen",
- "← → to move · OK to drop · Back to cancel": "← → flyt · OK slip · Tilbage annuller",
- "LG Home": "LG-startskærm"
+ "← → to move · OK to drop · Back to cancel": "← → flyt · OK slip · Tilbage annuller"
 }

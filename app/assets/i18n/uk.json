@@ -10,6 +10,7 @@
  "Added to the shelf: {app}": "Додано до улюблених додатків: {app}",
  "All Apps": "Усі додатки",
  "All Apps button": "Кнопка «Усі додатки»",
+ "Ambient home": "Фоновий головний екран",
  "Android didn't accept the new home screen": "Android не прийняв новий головний екран",
  "Anime": "Аніме",
  "Automatic": "Автоматично",
@@ -75,6 +76,7 @@
  "KION button": "Кнопка KION",
  "Keystone": "Трапеція",
  "L:{min}": "Мін. {min}",
+ "LG Home": "Головна LG",
  "Language": "Мова",
  "Light": "Світла",
  "Links to the titles by Watchmode.": "Посилання на тайтли: Watchmode.",
@@ -303,6 +305,5 @@
  "{n} ms": "{n} мс",
  "{time} left": "залишилось {time}",
  "{version} is out: build it again": "Вийшла {version}: зберіть знову",
- "← → to move · OK to drop · Back to cancel": "← → перемістити · OK розмістити · Назад скасувати",
- "LG Home": "Головна LG"
+ "← → to move · OK to drop · Back to cancel": "← → перемістити · OK розмістити · Назад скасувати"
 }

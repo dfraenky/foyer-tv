@@ -10,6 +10,7 @@
  "Added to the shelf: {app}": "已將 {app} 加入捷徑列",
  "All Apps": "所有應用程式",
  "All Apps button": "所有應用程式按鈕",
+ "Ambient home": "氛圍主畫面",
  "Android didn't accept the new home screen": "Android 未接受新的主畫面",
  "Anime": "動漫",
  "Automatic": "自動",
@@ -75,6 +76,7 @@
  "KION button": "KION 按鈕",
  "Keystone": "梯形校正",
  "L:{min}": "最低 {min}",
+ "LG Home": "LG 主頁",
  "Language": "語言",
  "Light": "淺色",
  "Links to the titles by Watchmode.": "影片與節目的連結由 Watchmode 提供。",
@@ -303,6 +305,5 @@
  "{n} ms": "{n} 毫秒",
  "{time} left": "剩餘 {time}",
  "{version} is out: build it again": "{version} 已推出：請重新建置",
- "← → to move · OK to drop · Back to cancel": "按 ← → 移動 · 按 OK 放置 · 按返回取消",
- "LG Home": "LG 主頁"
+ "← → to move · OK to drop · Back to cancel": "按 ← → 移動 · 按 OK 放置 · 按返回取消"
 }

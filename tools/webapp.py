@@ -16,7 +16,7 @@ import translate  # noqa: E402  (the catalogues and the keys the web app uses)
 GENERIC = {'tmdbKey': '', 'tmdbRegion': '', 'latitude': '', 'longitude': '', 'city': '', 'language': 'auto',
            'currency': '', 'temperature': 'auto', 'theme': 'auto', 'showCrypto': True, 'hideAnimation': False, 'hideApps': [],
            'shelfApps': [], 'drawerFirst': False, 'jellyfinUrl': '', 'jellyfinKey': '',
-           'picksFrom': 'all', 'performance': 'auto', 'animeTab': False, 'heroCard': True}
+           'picksFrom': 'all', 'performance': 'auto', 'animeTab': False, 'heroCard': True, 'ambientHome': True}
 
 
 def config_from_args(args):
@@ -79,6 +79,7 @@ def read_config(path):
         'performance': choice('performance', ('auto', 'full', 'calm', 'lite')),
         'animeTab': values.get('anime_tab', 'false').lower() == 'true',
         'heroCard': values.get('hero_card', 'true').lower() != 'false',
+        'ambientHome': values.get('ambient_home', 'true').lower() != 'false',
     }
 
 

@@ -10,6 +10,7 @@
  "Added to the shelf: {app}": "즐겨찾는 앱에 추가됨: {app}",
  "All Apps": "모든 앱",
  "All Apps button": "모든 앱 버튼",
+ "Ambient home": "앰비언트 홈",
  "Android didn't accept the new home screen": "Android가 새 홈 화면을 받아들이지 않았습니다",
  "Anime": "애니메이션",
  "Automatic": "자동",
@@ -75,6 +76,7 @@
  "KION button": "KION 버튼",
  "Keystone": "키스톤",
  "L:{min}": "최저 {min}",
+ "LG Home": "LG 홈",
  "Language": "언어",
  "Light": "밝게",
  "Links to the titles by Watchmode.": "작품 링크 제공: Watchmode.",
@@ -303,6 +305,5 @@
  "{n} ms": "{n}ms",
  "{time} left": "{time} 남음",
  "{version} is out: build it again": "{version} 출시: 다시 빌드하세요",
- "← → to move · OK to drop · Back to cancel": "← → 이동 · OK 배치 · 뒤로 취소",
- "LG Home": "LG 홈"
+ "← → to move · OK to drop · Back to cancel": "← → 이동 · OK 배치 · 뒤로 취소"
 }

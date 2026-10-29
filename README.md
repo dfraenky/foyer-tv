@@ -20,6 +20,8 @@ Open source. Built with Claude Code. One button to undo.
 > - **Jellyfin, Litefin and Seerr.** Trending titles in your Jellyfin library and its newest join the picks (`jellyfin_url`, `jellyfin_key`). With `picks_from=jellyfin` the picks are what's popular today: in your library they open [Litefin](https://github.com/MoazSalem/litefin) (or Jellyfin), the rest open Litefin to request them through its Seerr integration. With a Litefin build that takes launch parameters ([MoazSalem/litefin#559](https://github.com/MoazSalem/litefin/pull/559)), a pick opens on its own page.
 > - **Anime.** `anime_tab=true` adds an Anime tab, and anime among the picks in Explore: in Jellyfin, on Crunchyroll, or to request.
 > - **Smooth on the C1.** It draws the page at twice its size: `performance=auto` turns shadows and animations off there (20 fps before, 58 now); `calm` and `full` are there too.
+> - **Ambient home.** While the shelf has focus, a pick's photo fills the screen, sharp, a new one every 45 seconds, with the time, the date and the weather; ↑ brings the picks back. 60 fps on the C1. `ambient_home=false`, or Home Settings, turns it off.
+> - **Quicker start.** The shelf shows at once from the apps the TV listed last time, and coming back from an app no longer rebuilds it.
 > - **Narrow cards.** `hero_card=false` keeps every pick narrow; the focused one shows its app first, and a title or line that doesn't fit runs like a conveyor.
 > - Sharper Crunchyroll, Spotify and YouTube logos on the shelf, and Litefin's on black.
 > - **The home screen, on a rooted TV.** `python3 webos/install.py <IP> --root --launcher`: the Home key and closing an app come back to Free My TV ([how](#as-the-home-screen-on-a-rooted-lg-tv)).

@@ -10,6 +10,7 @@
  "Added to the shelf: {app}": "Aggiunta alle app preferite: {app}",
  "All Apps": "Tutte le app",
  "All Apps button": "Tasto Tutte le app",
+ "Ambient home": "Home ambient",
  "Android didn't accept the new home screen": "Android non ha accettato la nuova schermata Home",
  "Anime": "Anime",
  "Automatic": "Automatico",
@@ -75,6 +76,7 @@
  "KION button": "Tasto KION",
  "Keystone": "Keystone",
  "L:{min}": "Min {min}",
+ "LG Home": "Home LG",
  "Language": "Lingua",
  "Light": "Chiaro",
  "Links to the titles by Watchmode.": "Link ai titoli a cura di Watchmode.",
@@ -303,6 +305,5 @@
  "{n} ms": "{n} ms",
  "{time} left": "mancano {time}",
  "{version} is out: build it again": "È uscita la {version}: ricompilala",
- "← → to move · OK to drop · Back to cancel": "← → sposta · OK rilascia · Indietro annulla",
- "LG Home": "Home LG"
+ "← → to move · OK to drop · Back to cancel": "← → sposta · OK rilascia · Indietro annulla"
 }

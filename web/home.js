@@ -4,6 +4,7 @@
  *    HDMI Inputs, Settings) and the crypto quotes at the end of the tab row;
  *  - three picks for this hour in the selected tab; the background is the first one's photo, blurred and almost white;
  *  - the glass shelf with the apps; ↓ opens the drawer (inputs, shortcuts, weather, prices); ↑ or Back closes it;
+ *  - ambient (on by default): while the shelf has focus, a pick's photo over the whole screen with the time and weather;
  *  - a night look from sunset to sunrise; a screensaver after a few idle minutes.
  * The remote's arrows, OK and Back move the focus; a pointer (LG's Magic Remote) focuses what it points at.
  */
@@ -354,6 +355,7 @@
     focusRows($('citypick'), st.city, st.zone === Z.CITY);
     focusRows($('keypick'), st.key, st.zone === Z.KEY);
     setClass(body, 'drawer-open', st.zone === Z.DRAWER);
+    setClass(body, 'ambient', ambientOn());
   }
 
   function focusRows(sheet, index, on) {
@@ -532,6 +534,61 @@
     var d = new Date(), c = $('clock');
     c.firstChild.textContent = formatDate('format|h:mm', d.getTime());
     c.lastChild.textContent = formatDate('format|EEEE, MMMM d', d.getTime());
+    renderAmbient();
+  }
+
+  // MARK: - Ambient
+
+  // Home Settings → Ambient home: while the shelf has focus, a pick's photo (the screensaver's) fills the screen, sharp,
+  // a new one every WALL_EVERY; the time, the date and the weather at the top left. Only with a photo to show.
+  var wallAt = -1, wallFront = 0, wallShown = '', wallPick = null, WALL_EVERY = 45000;
+  try { wallShown = localStorage.getItem('fmtv.wall') || ''; } catch (e) {}
+
+  function ambientOn() { return Prefs.ambient() && st.zone === Z.SHELF && !!wallShown; }
+
+  /** Shows `url` once it has loaded, cross-fading from the last photo. */
+  function showWall(url, pick) {
+    var img = new Image();
+    img.onload = function () {
+      var pics = $('wall').children;
+      wallFront = 1 - wallFront;
+      pics[wallFront].style.backgroundImage = 'url(' + url + ')';
+      setClass(pics[wallFront], 'on', true);
+      setClass(pics[1 - wallFront], 'on', false);
+      wallShown = url;
+      wallPick = pick;
+      try { localStorage.setItem('fmtv.wall', url); } catch (e) {}   // the next start shows it at once
+      renderAmbient();
+      updateFocus();
+    };
+    img.src = url;
+  }
+
+  /** The next photo (`step` 1), or the one in turn again once the picks came or changed (0). */
+  function nextWall(step) {
+    var list = saverPhotos();
+    if (!list.length) return;
+    wallAt = wallAt < 0 ? 0 : (wallAt + step) % list.length;
+    var p = list[wallAt], url = Data.image(p.backdrop, 'w1280');
+    if (url !== wallShown || !wallPick) showWall(url, p);
+  }
+
+  function renderAmbient() {
+    var a = $('ambient').children, d = new Date();
+    a[0].textContent = formatDate('format|h:mm', d.getTime());
+    a[1].textContent = formatDate('format|EEEE, MMMM d', d.getTime());
+    var w = Data.weather;
+    a[2].innerHTML = '';
+    if (w && Prefs.weather()) {
+      sym(Data.symbol(w.code, w.isDay), a[2]);
+      a[2].appendChild(document.createTextNode(Data.degrees(w.temp) + '  ' + Data.condition(w.code, w.isDay)));
+      if (Data.city) el('span', 'city', a[2], Data.city);
+    }
+    a[3].innerHTML = '';
+    if (wallPick) {
+      a[3].appendChild(document.createTextNode(wallPick.title));
+      if (wallPick.meta) el('span', '', a[3], wallPick.meta);
+    }
   }
 
   /** On the minute, so the clock never runs late (the 30-second refresh could, by up to 30 s). */
@@ -782,6 +839,8 @@
         step: function (d) { cycle('theme', ['auto', 'light', 'dark'], theme, d); checkNight(); }},
       {label: tr('Picks per tab'), value: String(Prefs.cards()),
         step: function (d) { Prefs.set('cards', 3 + (Prefs.cards() - 3 + (d || 1) + 4) % 4); renderCards(); }},
+      {label: tr('Ambient home'), toggle: Prefs.ambient(),
+        step: function () { Prefs.set('ambient', !Prefs.ambient()); updateFocus(); }},
       {label: tr('Watch from the screensaver'), toggle: Prefs.saverWatch(),
         step: function () { Prefs.set('saverWatch', !Prefs.saverWatch()); }},
       {label: tr('Weather widget'), toggle: Prefs.weather(),
@@ -1576,14 +1635,26 @@
     return false;
   }
 
+  // The TV's apps and inputs as last listed: the shelf shows from these at once (the TV takes about half a second).
+  var listed = '';
+  try { listed = localStorage.getItem('fmtv.apps') || ''; } catch (e) {}
+
+  function useApps(list, list2) {
+    apps = list.filter(function (a) { return !hidden(a); });
+    Data.setApps(apps);
+    pickShelf();
+    inputs = list2;
+  }
+
+  /** Lists the TV's apps and inputs; done(changed): whether they differ from the last list. */
   function loadApps(done) {
     TV.apps(function (list) {
-      apps = list.filter(function (a) { return !hidden(a); });
-      Data.setApps(apps);
-      pickShelf();
       TV.inputs(function (list2) {
-        inputs = list2;
-        if (done) done();
+        var now = JSON.stringify({apps: list, inputs: list2}), changed = now !== listed;
+        listed = now;
+        if (changed) try { localStorage.setItem('fmtv.apps', now); } catch (e) {}
+        useApps(list, list2);
+        if (done) done(changed);
       });
     });
   }
@@ -1603,6 +1674,8 @@
     renderQuotes();
     renderCards();
     renderPanels();
+    renderAmbient();
+    nextWall(0);
     checkNight();
   });
 
@@ -1618,7 +1691,7 @@
     // LG: with handlesRelaunch the app has to come to the front itself, or opening it again while it runs shows nothing.
     if (window.PalmSystem && window.PalmSystem.activate) window.PalmSystem.activate();
     reset();
-    loadApps(function () { renderShelf(); renderDrawer(); restInDrawer(); Data.refresh(); });
+    loadApps(function (changed) { if (changed) { renderShelf(); renderDrawer(); } restInDrawer(); Data.refresh(); });
   }
 
   window.addEventListener('resize', fit);
@@ -1627,7 +1700,7 @@
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) { hideSaver(); return; }
     idleAt = Date.now();
-    loadApps(function () { renderShelf(); renderDrawer(); updateFocus(); Data.refresh(); });
+    loadApps(function (changed) { if (changed) { renderShelf(); renderDrawer(); updateFocus(); } Data.refresh(); });
   });
 
   I18N.set(Prefs.language());
@@ -1636,9 +1709,21 @@
   TV.holdScreenSaver(function () { return !sheetOpen() && saverPhotos().length > 0; });
   fit();
   renderTop();
+  if (wallShown) showWall(wallShown, null);
   tickClock();
-  loadApps(function () {
+  setInterval(function () { if (ambientOn() && !saverOn && !document.hidden) nextWall(1); }, WALL_EVERY);
+  var early = null;
+  try { early = listed && JSON.parse(listed); } catch (e) {}
+  if (early && early.apps) {
+    useApps(early.apps, early.inputs || []);
     renderAll();
+    nextWall(0);
+    restInDrawer();
+  }
+  loadApps(function (changed) {
+    if (!early) renderAll();
+    else if (changed) { renderShelf(); renderDrawer(); updateFocus(); }
+    nextWall(0);
     restInDrawer();
     Data.refresh();
   });

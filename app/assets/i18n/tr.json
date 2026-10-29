@@ -10,6 +10,7 @@
  "Added to the shelf: {app}": "Rafa eklendi: {app}",
  "All Apps": "Tüm Uygulamalar",
  "All Apps button": "Tüm Uygulamalar tuşu",
+ "Ambient home": "Ambiyans ana ekranı",
  "Android didn't accept the new home screen": "Android yeni ana ekranı kabul etmedi",
  "Anime": "Anime",
  "Automatic": "Otomatik",
@@ -75,6 +76,7 @@
  "KION button": "KION tuşu",
  "Keystone": "Keystone",
  "L:{min}": "D:{min}",
+ "LG Home": "LG Ana Ekran",
  "Language": "Dil",
  "Light": "Açık renk",
  "Links to the titles by Watchmode.": "İçerik bağlantıları Watchmode'dan.",
@@ -303,6 +305,5 @@
  "{n} ms": "{n} ms",
  "{time} left": "{time} kaldı",
  "{version} is out: build it again": "{version} çıktı: yeniden derleyin",
- "← → to move · OK to drop · Back to cancel": "← → taşı · OK bırak · Geri iptal",
- "LG Home": "LG Ana Ekran"
+ "← → to move · OK to drop · Back to cancel": "← → taşı · OK bırak · Geri iptal"
 }

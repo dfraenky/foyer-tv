@@ -10,6 +10,7 @@
  "Added to the shelf: {app}": "Zur Leiste hinzugefügt: {app}",
  "All Apps": "Alle Apps",
  "All Apps button": "Alle-Apps-Taste",
+ "Ambient home": "Ambient-Startseite",
  "Android didn't accept the new home screen": "Android hat den neuen Startbildschirm nicht angenommen",
  "Anime": "Anime",
  "Automatic": "Automatisch",
@@ -75,6 +76,7 @@
  "KION button": "KION-Taste",
  "Keystone": "Trapezkorrektur",
  "L:{min}": "T:{min}",
+ "LG Home": "LG-Startseite",
  "Language": "Sprache",
  "Light": "Hell",
  "Links to the titles by Watchmode.": "Links zu den Titeln von Watchmode.",
@@ -303,6 +305,5 @@
  "{n} ms": "{n} ms",
  "{time} left": "noch {time}",
  "{version} is out: build it again": "{version} ist da: neu bauen",
- "← → to move · OK to drop · Back to cancel": "← → verschieben · OK ablegen · Zurück abbrechen",
- "LG Home": "LG-Startseite"
+ "← → to move · OK to drop · Back to cancel": "← → verschieben · OK ablegen · Zurück abbrechen"
 }
