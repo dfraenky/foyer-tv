@@ -741,27 +741,28 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .lite #scene { -webkit-transition: opacity 1.2s !important; transition: opacity 1.2s !important; }
 
 /* Keep watching (ambient, with Jellyfin): above the shelf, a progress bar on each; hidden under the carousel and the drawer. */
-#resume { position: absolute; left: 130px; top: 588px; width: 1660px; height: 212px; color: #FFF; opacity: 0; visibility: hidden;
+#resume { position: absolute; left: 130px; top: 636px; width: 1660px; height: 164px; color: #FFF; opacity: 0; visibility: hidden;
   -webkit-transition: opacity 0.3s, visibility 0.3s; transition: opacity 0.3s, visibility 0.3s; }
 .ambient.kw-on #resume { opacity: 1; visibility: visible; }
 .hero-on #resume, .drawer-open #resume, .menu-on #resume { opacity: 0; visibility: hidden; }
-#resume .label { position: absolute; left: 4px; top: 0; font-size: 26px; font-weight: 600; color: rgba(255, 255, 255, 0.86);
+#resume .label { position: absolute; left: 4px; top: 0; font-size: 22px; font-weight: 600; color: rgba(255, 255, 255, 0.86);
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4); }
-#resume .card { position: absolute; top: 46px; width: 292px; height: 164px; border-radius: 18px; overflow: hidden;
+#resume .card { position: absolute; top: 38px; width: 216px; height: 122px; border-radius: 14px; overflow: hidden;
   background-color: rgba(30, 30, 34, 0.8); background-size: cover; background-position: center;
   -webkit-transition: -webkit-transform 0.2s; transition: transform 0.2s; }
 #resume .card .shade { position: absolute; left: 0; top: 0; width: 100%; height: 100%;
   background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0) 38%, rgba(0, 0, 0, 0.78));
   background: linear-gradient(rgba(0, 0, 0, 0) 38%, rgba(0, 0, 0, 0.78)); }
-#resume .card .t { position: absolute; left: 16px; right: 16px; bottom: 22px; font-size: 22px; font-weight: 600; line-height: 1.2;
+#resume .card .t { position: absolute; left: 12px; right: 12px; bottom: 17px; font-size: 17px; font-weight: 600; line-height: 1.2;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#resume .card .t span { display: block; font-size: 18px; font-weight: 500; color: rgba(255, 255, 255, 0.72); overflow: hidden; text-overflow: ellipsis; }
-#resume .card .bar { position: absolute; left: 16px; right: 16px; bottom: 10px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.3); }
-#resume .card .done { height: 5px; border-radius: 3px; background: #FFF; }
+#resume .card .t span { display: block; font-size: 14px; font-weight: 500; color: rgba(255, 255, 255, 0.72); overflow: hidden; text-overflow: ellipsis; }
+#resume .card .bar { position: absolute; left: 12px; right: 12px; bottom: 8px; height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.3); }
+#resume .card .done { height: 4px; border-radius: 3px; background: #FFF; }
 #resume .card.focus { -webkit-transform: scale(1.08); transform: scale(1.08); z-index: 1; }
-#resume .card.focus::before { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; border: 4px solid #FFF; border-radius: 18px; z-index: 1; }
+#resume .card.focus::before { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; border: 3px solid #FFF; border-radius: 14px; z-index: 1; }
+#resume .card .badge { position: absolute; right: 8px; top: 8px; padding: 2px 8px; border-radius: 6px; background: #FFF; color: #111; font-size: 13px; font-weight: 700; }
 /* The photo's title moves above the row. */
-.kw-on #ambient .what { bottom: 236px; }
+.kw-on #ambient .what { bottom: 190px; }
 
 /* Home Settings: the categories on the left, their rows on the right. */
 #settings .box { left: 310px; width: 1300px; }
@@ -771,3 +772,97 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #settings .cat.on { color: #FFF; }
 #settings .cat.focus { background: #F5F5F7; color: #1C1C1E; }
 #settings .main { margin-left: 370px; padding-left: 20px; border-left: 1px solid rgba(255, 255, 255, 0.1); }
+
+/*
+ * MARK: - The scene's look: the light of the hour, the weather and the holidays (home.js sceneNow). Each effect is a layer
+ * that shows with its class on #scene (fx-rain, fx-snow...). Falling things are tiles sliding down, mist drifts sideways:
+ * only transform and opacity animate, and nothing animates while the scene is hidden.
+ */
+#scene .shadebg, #scene .shadefg, #scene .stars, #scene .moon, #scene .rays, #scene .hare, #scene .deco, #scene .xstar, #scene .clouds,
+#scene .flash, #scene .eggs, #scene canvas { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: none; }
+#scene .shadebg, #scene .shadefg { display: block; }
+#scene .shadefg { -webkit-mask-size: 1920px 1080px; }
+#scene .fx { position: absolute; left: -92px; top: -512px; width: 2012px; height: 1592px; background-repeat: repeat; display: none; }
+#scene .mist { position: absolute; left: 0; width: 3840px; height: 420px; background: url(scenes/fx-mist.webp) repeat-x; display: none; }
+#scene .bat { position: absolute; left: 0; top: 0; display: none; }
+#scene .bat div { width: 120px; height: 60px; background: url(scenes/fx-bat.png) 0 0; -webkit-animation: flap 0.28s steps(2) infinite; animation: flap 0.28s steps(2) infinite; }
+#scene .greet { position: absolute; left: 0; right: 0; bottom: 100%; margin-bottom: 6px; font-size: 26px; font-weight: 600; letter-spacing: 0.04em; opacity: 0.92; }
+/* Photos (spring, autumn, winter): a soft shadow under the glass digits, so they read on bright skies. */
+#scene.s-photo .date { text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45); }
+#scene.s-photo .rim { color: rgba(255, 255, 255, 0.24); -webkit-text-stroke-color: rgba(255, 255, 255, 0.75); text-shadow: 0 8px 40px rgba(0, 0, 0, 0.22); }
+/* The fog at night (Halloween): a white clock and date. */
+#scene.s-dark .date { color: #FFF; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.5); }
+#scene.s-dark .rim { color: rgba(255, 236, 214, 0.16); -webkit-text-stroke-color: rgba(255, 230, 200, 0.7); }
+
+#scene.fx-rain .rain1, #scene.fx-rain .rain2, #scene.fx-snow .snowfar, #scene.fx-snow .snownear, #scene.fx-petals .petals { display: block; }
+#scene .rain1 { background-image: url(scenes/fx-rain.png); opacity: 0.75; -webkit-animation: rainfall 0.42s linear infinite; animation: rainfall 0.42s linear infinite; }
+#scene .rain2 { background-image: url(scenes/fx-rain.png); background-size: 340px 340px; opacity: 0.45; -webkit-animation: rainfall 0.6s linear infinite; animation: rainfall 0.6s linear infinite; }
+#scene .snowfar { background-image: url(scenes/fx-snow-far.png); opacity: 0.8; -webkit-animation: fall 14s linear infinite; animation: fall 14s linear infinite; }
+#scene .snownear { background-image: url(scenes/fx-snow-near.png); -webkit-animation: fall 7s linear infinite; animation: fall 7s linear infinite; }
+#scene .petals { background-image: url(scenes/fx-petals.png); opacity: 0.9; -webkit-animation: fall 13s linear infinite; animation: fall 13s linear infinite; }
+#scene.fx-clouds .clouds { display: block; background: -webkit-linear-gradient(top, rgba(60, 66, 78, 0.55), rgba(60, 66, 78, 0.15) 55%, rgba(0, 0, 0, 0)); }
+#scene.fx-snow .clouds { background: -webkit-linear-gradient(top, rgba(200, 210, 225, 0.3), rgba(200, 210, 225, 0.06) 55%, rgba(0, 0, 0, 0)); }
+/* A thunderstorm: two quick flashes now and then. */
+#scene.fx-storm .flash { display: block; background: #E8EEFF; opacity: 0; -webkit-animation: flash 9s linear infinite; animation: flash 9s linear infinite; }
+@-webkit-keyframes flash { 0%, 90%, 91.4%, 93%, 94%, 100% { opacity: 0; } 90.6% { opacity: 0.55; } 93.4% { opacity: 0.35; } }
+@keyframes flash { 0%, 90%, 91.4%, 93%, 94%, 100% { opacity: 0; } 90.6% { opacity: 0.55; } 93.4% { opacity: 0.35; } }
+#scene.fx-mist .mist { display: block; }
+#scene .m1 { top: 470px; opacity: 0.85; -webkit-animation: drift 90s linear infinite; animation: drift 90s linear infinite; }
+#scene .m2 { top: 600px; opacity: 0.6; -webkit-animation: drift 60s linear infinite reverse; animation: drift 60s linear infinite reverse; }
+/* A clear night: stars in two sets that twinkle in turn, under the cut-out. */
+#scene.fx-stars .stars { display: block; height: 620px; background-repeat: no-repeat; }
+#scene .stars.a { background-image: url(scenes/fx-stars-a.png); -webkit-animation: twinkle 3.2s ease-in-out infinite; animation: twinkle 3.2s ease-in-out infinite; }
+#scene .stars.b { background-image: url(scenes/fx-stars-b.png); -webkit-animation: twinkle 4.1s ease-in-out infinite reverse; animation: twinkle 4.1s ease-in-out infinite reverse; }
+@-webkit-keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+/* The Christmas fir (the winter-morning photo): half its lights on the 1st Advent, all on the 2nd, baubles on the 3rd,
+   gold tinsel on the 4th, the star at Christmas. */
+/* Only where the tree is (the pictures are cut to it): full-screen layers cost an LG C1 (drawing at twice the size) ~20 fps. */
+#scene .deco { left: 1194px; top: 131px; width: 596px; height: 847px; background-repeat: no-repeat; }
+#scene .lights1 { background-image: url(scenes/fx-xlights-a.webp); -webkit-animation: glowing 2.4s ease-in-out infinite; animation: glowing 2.4s ease-in-out infinite; }
+#scene .lights2 { background-image: url(scenes/fx-xlights-b.webp); -webkit-animation: glowing 2.4s ease-in-out infinite -1.2s; animation: glowing 2.4s ease-in-out infinite -1.2s; }
+#scene .baubles { background-image: url(scenes/fx-baubles.webp); }
+#scene .tinsel { background-image: url(scenes/fx-tinsel.webp); }
+#scene .xstar { left: 1372px; top: -58px; width: 240px; height: 240px; background: url(scenes/fx-star.png) no-repeat; -webkit-animation: glowing 3s ease-in-out infinite; animation: glowing 3s ease-in-out infinite; }
+@-webkit-keyframes glowing { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes glowing { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+#scene.fx-tree1 .lights1, #scene.fx-tree2 .lights2, #scene.fx-tree3 .baubles, #scene.fx-tree4 .tinsel, #scene.fx-tree5 .xstar { display: block; }
+/* Easter: painted eggs on a string, swaying a little; the hare on the ridge and rays from the sun (spring-morning photo). */
+#scene.fx-eggs .eggs { display: block; height: 220px; background: url(scenes/fx-eggs.png) no-repeat; -webkit-transform-origin: 50% 0; transform-origin: 50% 0; -webkit-animation: sway 6s ease-in-out infinite; animation: sway 6s ease-in-out infinite; }
+@-webkit-keyframes sway { 0%, 100% { -webkit-transform: rotate(-0.25deg); transform: rotate(-0.25deg); } 50% { -webkit-transform: rotate(0.25deg); transform: rotate(0.25deg); } }
+@keyframes sway { 0%, 100% { -webkit-transform: rotate(-0.25deg); transform: rotate(-0.25deg); } 50% { -webkit-transform: rotate(0.25deg); transform: rotate(0.25deg); } }
+#scene.fx-hare .hare { display: block; left: 1268px; top: 512px; width: 69px; height: 83px; background: url(scenes/fx-hare.png) no-repeat; }
+#scene.fx-rays .rays { display: block; width: 1766px; background: url(scenes/fx-rays.webp) no-repeat; background-size: 1766px 1080px; -webkit-animation: breathe 7s ease-in-out infinite; animation: breathe 7s ease-in-out infinite; }
+@-webkit-keyframes breathe { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
+@keyframes breathe { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
+/* Halloween: a big low moon behind the hills, bats crossing. */
+#scene.fx-halloween .moon { display: block; left: 1250px; top: 60px; width: 520px; height: 520px; background: url(scenes/fx-moon.webp) no-repeat; }
+#scene.fx-halloween .bat { display: block; }
+#scene .b1 { -webkit-animation: fly1 16s linear infinite; animation: fly1 16s linear infinite; }
+#scene .b2 { -webkit-animation: fly2 21s linear infinite -6s; animation: fly2 21s linear infinite -6s; }
+#scene .b3 { -webkit-animation: fly1 26s linear infinite -14s; animation: fly1 26s linear infinite -14s; }
+#scene .b2 div { -webkit-transform: scale(0.6); transform: scale(0.6); }
+#scene .b3 div { -webkit-transform: scale(0.42); transform: scale(0.42); }
+@-webkit-keyframes fly1 { from { -webkit-transform: translate3d(-200px, 380px, 0); transform: translate3d(-200px, 380px, 0); } 50% { -webkit-transform: translate3d(900px, 200px, 0); transform: translate3d(900px, 200px, 0); } to { -webkit-transform: translate3d(2100px, 330px, 0); transform: translate3d(2100px, 330px, 0); } }
+@keyframes fly1 { from { -webkit-transform: translate3d(-200px, 380px, 0); transform: translate3d(-200px, 380px, 0); } 50% { -webkit-transform: translate3d(900px, 200px, 0); transform: translate3d(900px, 200px, 0); } to { -webkit-transform: translate3d(2100px, 330px, 0); transform: translate3d(2100px, 330px, 0); } }
+@-webkit-keyframes fly2 { from { -webkit-transform: translate3d(2100px, 160px, 0) scaleX(-1); transform: translate3d(2100px, 160px, 0) scaleX(-1); } 50% { -webkit-transform: translate3d(1000px, 300px, 0) scaleX(-1); transform: translate3d(1000px, 300px, 0) scaleX(-1); } to { -webkit-transform: translate3d(-200px, 120px, 0) scaleX(-1); transform: translate3d(-200px, 120px, 0) scaleX(-1); } }
+@keyframes fly2 { from { -webkit-transform: translate3d(2100px, 160px, 0) scaleX(-1); transform: translate3d(2100px, 160px, 0) scaleX(-1); } 50% { -webkit-transform: translate3d(1000px, 300px, 0) scaleX(-1); transform: translate3d(1000px, 300px, 0) scaleX(-1); } to { -webkit-transform: translate3d(-200px, 120px, 0) scaleX(-1); transform: translate3d(-200px, 120px, 0) scaleX(-1); } }
+@-webkit-keyframes flap { from { background-position: 0 0; } to { background-position: -240px 0; } }
+@keyframes flap { from { background-position: 0 0; } to { background-position: -240px 0; } }
+.fx-fireworks canvas { display: block; }
+/* Hidden (carousel, drawer): nothing moves. */
+body:not(.scene-on) #scene .fx, body:not(.scene-on) #scene .mist, body:not(.scene-on) #scene .bat, body:not(.scene-on) #scene .bat div,
+body:not(.scene-on) #scene .stars, body:not(.scene-on) #scene .deco, body:not(.scene-on) #scene .eggs, body:not(.scene-on) #scene .flash,
+body:not(.scene-on) #scene .rays, body:not(.scene-on) #scene .xstar { -webkit-animation: none; animation: none; }
+@-webkit-keyframes fall { from { -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); } to { -webkit-transform: translate3d(0, 512px, 0); transform: translate3d(0, 512px, 0); } }
+@keyframes fall { from { -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); } to { -webkit-transform: translate3d(0, 512px, 0); transform: translate3d(0, 512px, 0); } }
+@-webkit-keyframes rainfall { from { -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); } to { -webkit-transform: translate3d(-92px, 512px, 0); transform: translate3d(-92px, 512px, 0); } }
+@keyframes rainfall { from { -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); } to { -webkit-transform: translate3d(-92px, 512px, 0); transform: translate3d(-92px, 512px, 0); } }
+@-webkit-keyframes drift { from { -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); } to { -webkit-transform: translate3d(-1920px, 0, 0); transform: translate3d(-1920px, 0, 0); } }
+@keyframes drift { from { -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); } to { -webkit-transform: translate3d(-1920px, 0, 0); transform: translate3d(-1920px, 0, 0); } }
+/* Lite (an LG C1, Tizen 2): what falls keeps falling, what glows stays still (the twinkling cost it ~10 fps). */
+.lite #scene .stars, .lite #scene .deco, .lite #scene .xstar, .lite #scene .rays, .lite #scene .eggs { -webkit-animation: none; animation: none; }
+/* Lite: one layer of snow and of rain, not two (each is bigger than the screen, and moves every frame). */
+.lite #scene .snowfar, .lite #scene .rain2 { display: none !important; }
+#scene .fx, #scene .mist { will-change: transform; }
+.lite #scene .snownear { background-image: url(scenes/fx-snow-lite.png); }   /* the far flakes too, in the same tile */

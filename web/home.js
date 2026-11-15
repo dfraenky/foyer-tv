@@ -374,7 +374,7 @@
     setClass(body, 'ambient', amb);
     setClass(body, 'hero-on', amb && (st.zone === Z.HERO || st.zone === Z.TOP));
     setClass(body, 'scene-on', amb && sceneOn && st.zone !== Z.HERO && st.zone !== Z.TOP);
-    setClass(body, 'kw-on', amb && resumeList.length > 0);
+    setClass(body, 'kw-on', amb && rowItems.length > 0);
     list = $('resume').querySelectorAll('.card');
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.RESUME && st.resume === i);
     setClass(body, 'menu-on', st.zone === Z.MENU);
@@ -565,38 +565,153 @@
 
   // MARK: - Ambient
 
-  // Home Settings → Ambient home: while the shelf has focus, a pick's photo (the screensaver's) fills the screen, sharp,
-  // a new one every WALL_EVERY; the time, the date and the weather at the top left. Only with a photo to show.
-  var wallAt = -1, wallFront = 0, wallShown = '', wallWanted = '', wallPick = null, WALL_EVERY = 45000;
-  try { wallShown = localStorage.getItem('foyer.wall') || ''; } catch (e) {}
+  // Home Settings → Ambient home: while the shelf has focus, a landscape fills the screen with a big clock behind its
+  // hills (the cut-out `fg` is drawn over the clock, whose digits are filled with a blurred copy of the scene). Which
+  // landscape follows the season, the time of day (the sun at the city), the weather and the holidays. ↑ shows the
+  // picks over the whole screen (the carousel: `wall`).
+  var wallFront = 0, wallWanted = '', wallPick = null;
 
-  // Scenes (web/scenes, from couch-tv): a landscape with a big clock behind its hills (the cut-out `fg` is drawn over
-  // the clock, whose digits are filled with a blurred copy of the scene). The resting screen takes turns: a scene, a
-  // pick's photo, the next scene... Without picks, only scenes.
-  var SCENES = ['night', 'golden', 'water', 'fog', 'dawn'], NO_FG = {water: true};
-  var sceneAt = Math.floor(Math.random() * SCENES.length) - 1, sceneOn = false, sceneBusy = false, wallTurn = 0, sceneImgs = [];
+  // Summer: couch-tv's scenes ('c:'). The other seasons: photos from Wikimedia Commons (web/scenes/CREDITS.md), cut out
+  // with tools/make_scene.py. `top` and `size` place the clock behind the skyline; `front`: the skyline is too high,
+  // the clock stands in front.
+  var PICK = {
+    summer: {morning: 'c:dawn', day: 'c:water', evening: 'c:golden', night: 'c:night', wet: 'c:fog'},
+    spring: {morning: 'spring-morning', day: 'spring-fuji', evening: 'spring-orchard', night: 'spring-fuji', wet: 'spring-orchard'},
+    autumn: {morning: 'autumn-morning', day: 'autumn-day', evening: 'autumn-evening', night: 'autumn-morning', wet: 'c:fog'},
+    winter: {morning: 'winter-morning', day: 'winter-hut', evening: 'winter-evening', night: 'winter-evening', wet: 'winter-evening'}
+  };
+  var PHOTO = {
+    'winter-morning': {top: 214, size: 400}, 'winter-evening': {top: 196, size: 400}, 'winter-hut': {top: 150, size: 340, front: true},
+    'autumn-day': {top: 120, size: 287}, 'autumn-evening': {top: 150, size: 340, front: true}, 'autumn-morning': {top: 148, size: 400},
+    'spring-morning': {top: 214, size: 330}, 'spring-fuji': {top: 150, size: 330}, 'spring-orchard': {top: 120, size: 270}
+  };
+  // How the time of day darkens the scenery (never the clock): couch-tv's scenes were made for their hour, the photos
+  // are darkened more at night.
+  var SHADE = {
+    couch: {morning: '', day: '', evening: 'rgba(40, 10, 40, 0.10), rgba(20, 5, 20, 0.32)', night: 'rgba(0, 0, 20, 0.30), rgba(0, 0, 10, 0.45)'},
+    photo: {morning: '', day: '', evening: 'rgba(60, 20, 40, 0.18), rgba(20, 5, 20, 0.35)', night: 'rgba(4, 8, 30, 0.66), rgba(0, 0, 14, 0.74)'}
+  };
+  var sceneOn = false, sceneBusy = false, sceneImgKey = '', sceneWanted = '';
 
-  /** The next scene, once its three pictures have loaded; a scene showing fades out first. */
-  function nextScene() {
+  function seasonOf(d) { var m = d.getMonth(); return m < 2 || m === 11 ? 'winter' : m < 5 ? 'spring' : m < 8 ? 'summer' : 'autumn'; }
+
+  /** Morning, day, evening or night, from the sun at the city (6:00 and 18:00 without a forecast). */
+  function dayPart(d) {
+    var sun = Data.sun(), mins = d.getHours() * 60 + d.getMinutes();
+    if (mins < sun.rise - 30 || mins >= sun.set + 30) return 'night';
+    if (mins < sun.rise + 150) return 'morning';
+    if (mins >= sun.set - 90) return 'evening';
+    return 'day';
+  }
+
+  /** The weather now, as the scene shows it (Open-Meteo's WMO codes). */
+  function weatherKind() {
+    var w = Data.weather, c = w ? w.code : 0;
+    if (c >= 95) return 'storm';
+    if ((c >= 71 && c <= 77) || c === 85 || c === 86) return 'snow';
+    if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return 'rain';
+    if (c === 45 || c === 48) return 'fog';
+    if (c === 3) return 'cloudy';
+    return 'clear';
+  }
+
+  function easterSunday(y) {   // Gauss (Meeus): the Gregorian Easter
+    var a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+    var g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+    var l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), n = h + l - 7 * m + 114;
+    return new Date(y, Math.floor(n / 31) - 1, n % 31 + 1);
+  }
+  function dayOf(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
+
+  /**
+   * The holiday now: {id, stage, greet}. Advent (from the 4th Sunday before Christmas): the fir gets more decorated each
+   * Sunday (stage 1 to 4), Christmas (24 to 26 December) adds the star (5), and it stays up until 6 January.
+   */
+  function holidayAt(d) {
+    var y = d.getFullYear(), m = d.getMonth(), day = d.getDate(), hour = d.getHours(), t = dayOf(d);
+    if ((m === 11 && day === 31 && hour >= 18) || (m === 0 && day === 1 && hour < 3)) {
+      return {id: 'nye', stage: 0, greet: m === 11 ? tr("Happy New Year's Eve") : tr('Happy New Year')};
+    }
+    if (m === 0 && day === 1) return {id: 'newyear', stage: 5, greet: tr('Happy New Year')};
+    if (m === 11 && day >= 24 && day <= 26) return {id: 'xmas', stage: 5, greet: tr('Merry Christmas')};
+    if ((m === 11 && day >= 27) || (m === 0 && day <= 6)) return {id: 'xmastree', stage: 5, greet: ''};
+    var eve = new Date(y, 11, 24), first = dayOf(new Date(y, 11, 24 - eve.getDay() - 21));
+    if (t >= first && t < dayOf(eve)) {
+      var n = Math.floor((t - first) / (7 * 864e5)) + 1;
+      return {id: 'advent', stage: n, greet: d.getDay() === 0 ? trf('Advent Sunday {n}', {n: n}) : ''};
+    }
+    var e = easterSunday(y);   // Sunday and Monday, by the date: Easter can fall on the clock change
+    if (t === dayOf(e) || t === dayOf(new Date(y, e.getMonth(), e.getDate() + 1))) return {id: 'easter', stage: 0, greet: tr('Happy Easter')};
+    if (m === 9 && day === 31 && hour >= 17) return {id: 'halloween', stage: 0, greet: tr('Happy Halloween')};
+    return {id: '', stage: 0, greet: ''};
+  }
+
+  /** For tests and the preview: another time, and weather (WMO code), to see the scene of. */
+  var sceneFake = null;
+  function sceneClock() { return sceneFake ? sceneFake.at : Date.now(); }
+
+  /** What the scene shows now: the landscape, its look, and the effects over it. */
+  function sceneNow(now) {
+    var d = new Date(now || Date.now()), sea = seasonOf(d), t = dayPart(d), w = sceneFake && sceneFake.wx ? sceneFake.wx : weatherKind();
+    var hol = Prefs.holidays() ? holidayAt(d) : {id: '', stage: 0, greet: ''}, h = hol.id;
+    if (h === 'easter') sea = 'spring';
+    if (h === 'halloween') sea = 'autumn';
+    if (hol.stage || h === 'nye') sea = 'winter';
+    if (h === 'nye') { t = 'night'; w = 'clear'; }
+    if (h === 'halloween') { t = 'night'; if (w === 'clear' || w === 'cloudy') w = 'fog'; }
+    if (h === 'xmas' && (w === 'clear' || w === 'cloudy')) w = 'snow';
+    var wet = t === 'day' && (w === 'cloudy' || w === 'rain' || w === 'storm' || w === 'fog');
+    var pick = PICK[sea][wet ? 'wet' : t];
+    if (h === 'easter') pick = t === 'night' ? 'spring-fuji' : 'spring-morning';
+    if (hol.stage) pick = 'winter-morning';   // the Christmas fir
+    if (h === 'nye') pick = 'winter-evening';
+    if (h === 'halloween') pick = 'c:fog';
+    var couch = pick.indexOf('c:') === 0, name = couch ? pick.slice(2) : pick, L = couch ? null : PHOTO[name];
+    var grade = couch && name === 'fog' && sea === 'autumn' ? '.autumn' : '';
+    var base = couch ? 'scenes/scene-' + name : 'scenes/p-' + name;
+    var fg = couch ? (name === 'water' ? '' : base + '-fg' + grade + '.webp') : L.front ? '' : base + '-fg.webp';
+    var fx = [];
+    if (w === 'rain' || w === 'storm') fx.push('rain');
+    if (w === 'storm') fx.push('storm');
+    if (w === 'snow') fx.push('snow');
+    if (w === 'fog') fx.push('mist');
+    if (w !== 'clear' && w !== 'fog') fx.push('clouds');
+    if (t === 'night' && w === 'clear' && name !== 'fog') fx.push('stars');
+    if (sea === 'spring' && t !== 'night' && (w === 'clear' || w === 'cloudy')) fx.push('petals');
+    if (h === 'easter') { fx.push('eggs'); if (pick === 'spring-morning') fx.push('hare', 'rays'); }
+    if (h === 'halloween') fx.push('halloween');
+    if (h === 'nye') fx.push('fireworks');
+    for (var s = 1; s <= hol.stage; s++) fx.push('tree' + s);
+    var shade = (couch ? SHADE.couch : SHADE.photo)[t];
+    if (name === 'fog' && t === 'night') shade = 'rgba(8, 6, 22, 0.86), rgba(14, 8, 10, 0.74) 60%, rgba(0, 0, 0, 0.8)';
+    return {
+      cls: (couch ? 's-' + name : 's-photo') + (name === 'fog' && t === 'night' ? ' s-dark' : '') + ' fx-' + fx.join(' fx-'),
+      bg: base + grade + '.jpg', glass: base + '-glass' + grade + '.jpg', fg: fg, layout: L, shade: shade, greet: hol.greet
+    };
+  }
+
+  /** Shows the scene for now: a new landscape once its pictures have loaded (fading the last one out), else just its effects. */
+  function applyScene(now) {
+    var sc = sceneNow(now || sceneClock()), key = sc.bg + '|' + sc.fg;
+    sceneWanted = key;
+    if (key === sceneImgKey) { dressScene(sc); return; }
     if (sceneBusy) return;
     sceneBusy = true;
-    sceneAt = (sceneAt + 1) % SCENES.length;
-    var name = SCENES[sceneAt], base = 'scenes/scene-' + name, urls = [base + '.jpg', base + '-glass.jpg'];
-    if (!NO_FG[name]) urls.push(base + '-fg.webp');
-    var left = urls.length, was = sceneOn;
+    var urls = [sc.bg, sc.glass].concat(sc.fg ? [sc.fg] : []), left = urls.length, was = sceneOn;
     sceneOn = false;
     if (was) updateFocus();
     function loaded() {
       if (--left) return;
       setTimeout(function () {
-        var s = $('scene'), c = s.children;
-        s.className = 's-' + name;
-        c[0].style.backgroundImage = 'url(' + urls[0] + ')';
-        c[1].firstChild.style.backgroundImage = 'url(' + urls[1] + ')';
-        c[2].style.backgroundImage = urls[2] ? 'url(' + urls[2] + ')' : 'none';
-        sceneOn = true;
         sceneBusy = false;
-        renderAmbient();
+        if (sceneWanted !== key) { applyScene(now); return; }   // it changed again meanwhile
+        var s = $('scene');
+        s.querySelector('.bg').style.backgroundImage = 'url(' + sc.bg + ')';
+        s.querySelector('.fill').style.backgroundImage = 'url(' + sc.glass + ')';
+        s.querySelector('.fg').style.backgroundImage = sc.fg ? 'url(' + sc.fg + ')' : 'none';
+        sceneImgKey = key;
+        dressScene(sc);
+        sceneOn = true;
         updateFocus();
       }, was ? 1200 : 0);   // after the fade out
     }
@@ -606,16 +721,81 @@
       img.src = urls[i];
       // Decoded before it shows (Chrome 64+), else the first frame of the fade waits ~0.4 s for three 1080p pictures.
       if (img.decode) { img.onload = null; img.decode().then(loaded, loaded); }
-      sceneImgs[i] = img;
     }
   }
 
-  /** The ambient look: on in Home Settings (the scenes need no photo). */
-  function ambient() { return Prefs.ambient(); }
-  /** The shelf has focus in it: the photos take turns. */
-  function ambientOn() { return ambient() && st.zone === Z.SHELF; }
+  /** The scene's classes (its effects), the clock's place and the light of the hour. */
+  function dressScene(sc) {
+    var s = $('scene'), L = sc.layout, shade = sc.shade ? '-webkit-linear-gradient(top, ' + sc.shade + ')' : 'none';
+    s.className = sc.cls;
+    var parts = [s.querySelector('.fill'), s.querySelector('.rim')];
+    for (var i = 0; i < parts.length; i++) {
+      parts[i].style.paddingTop = L ? L.top + 'px' : '';
+      parts[i].style.fontSize = L ? L.size + 'px' : '';
+    }
+    s.querySelector('.date').style.top = L ? (L.top - 58) + 'px' : '';
+    s.querySelector('.shadebg').style.background = shade;
+    var sf = s.querySelector('.shadefg');
+    sf.style.background = sc.fg ? shade : 'none';
+    sf.style.webkitMaskImage = sc.fg ? 'url(' + sc.fg + ')' : 'none';
+    sceneGreet = sc.greet;
+    renderAmbient();
+    fireworks();
+  }
+  var sceneGreet = '';
 
-  /** Shows `url` once it has loaded, cross-fading from the last photo. */
+  // New Year's Eve: rockets rise and burst into sparks that fall and fade, on a canvas, only while it shows.
+  var fwParts = [], fwRockets = [], fwOn = false, FW_COLORS = ['#FFD27A', '#FF6F91', '#7FD8FF', '#B6FF8F', '#FFFFFF', '#C79BFF', '#FF9F5A'];
+  function fireworks() {
+    var want = / fx-fireworks/.test(' ' + $('scene').className) && sceneOn && !document.hidden && st.zone !== Z.HERO;
+    if (want === fwOn) return;
+    fwOn = want;
+    if (fwOn) requestAnimationFrame(fireworksFrame);
+  }
+  function fireworksFrame() {
+    var cv = $('scene').querySelector('canvas'), cx = cv.getContext('2d');
+    if (!fwOn || !/ fx-fireworks/.test(' ' + $('scene').className) || document.hidden) { fwOn = false; cx.clearRect(0, 0, 1920, 1080); return; }
+    if (Math.random() < 0.022) {
+      fwRockets.push({x: 260 + Math.random() * 1400, y: 1080, vx: (Math.random() - 0.5) * 1.6, vy: -(13 + Math.random() * 4),
+        c: FW_COLORS[Math.floor(Math.random() * FW_COLORS.length)], top: 140 + Math.random() * 300, glitter: Math.random() < 0.4, ring: Math.random() < 0.25});
+    }
+    cx.globalCompositeOperation = 'destination-out';
+    cx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+    cx.fillRect(0, 0, 1920, 1080);   // the trails fade
+    cx.globalCompositeOperation = 'lighter';
+    var keep = [];
+    for (var i = 0; i < fwRockets.length; i++) {
+      var r = fwRockets[i];
+      r.x += r.vx; r.y += r.vy; r.vy += 0.16;
+      cx.globalAlpha = 0.9; cx.fillStyle = '#FFE9C0'; cx.fillRect(r.x - 1.5, r.y, 3, 7);
+      if (r.vy < -1.5 && r.y > r.top) { keep.push(r); continue; }
+      var n = r.ring ? 40 : 70;   // fewer sparks: an LG C1 kept 48 fps moving along the shelf with 110
+      for (var k = 0; k < n; k++) {
+        var a = r.ring ? k / n * 6.283 : Math.random() * 6.283, v = r.ring ? 5.2 : 1.5 + Math.random() * 5.5;
+        fwParts.push({x: r.x, y: r.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, decay: 0.008 + Math.random() * 0.008, c: r.c, glitter: r.glitter});
+      }
+    }
+    fwRockets = keep;
+    var alive = [];
+    for (var j = 0; j < fwParts.length; j++) {
+      var p = fwParts[j];
+      p.life -= p.decay;
+      if (p.life <= 0) continue;
+      p.x += p.vx; p.y += p.vy; p.vx *= 0.975; p.vy = p.vy * 0.975 + 0.045;
+      cx.globalAlpha = Math.min(1, p.life * 1.4) * (p.glitter && Math.random() < 0.4 ? 0.2 : 1);
+      cx.fillStyle = p.c;
+      cx.fillRect(p.x - 2, p.y - 2, 4, 4);
+      alive.push(p);
+    }
+    fwParts = alive;
+    cx.globalAlpha = 1;
+    requestAnimationFrame(fireworksFrame);
+  }
+
+  /** The ambient look: on in Home Settings. */
+  function ambient() { return Prefs.ambient(); }
+
+  /** Shows a pick's photo `url` (the carousel) once it has loaded, cross-fading from the last one. */
   function showWall(url, pick) {
     var img = new Image();
     wallWanted = url;
@@ -626,27 +806,11 @@
       pics[wallFront].style.backgroundImage = 'url(' + url + ')';
       setClass(pics[wallFront], 'on', true);
       setClass(pics[1 - wallFront], 'on', false);
-      wallShown = url;
       wallPick = pick;
-      try { localStorage.setItem('foyer.wall', url); } catch (e) {}   // the next start shows it at once
       renderAmbient();
       updateFocus();
     };
     img.src = url;
-  }
-
-  /** The next photo (`step` 1), or the one in turn again once the picks came or changed (0). */
-  function nextWall(step) {
-    var list = saverPhotos();
-    if (step) wallTurn++;
-    if (!list.length || wallTurn % 2 === 0) {
-      if (step || !sceneOn) nextScene();
-      return;
-    }
-    if (sceneOn) { sceneOn = false; updateFocus(); }
-    wallAt = wallAt < 0 ? 0 : (wallAt + step) % list.length;
-    var p = list[wallAt], url = Data.image(p.backdrop, 'w1280');
-    if (url !== wallWanted || !wallPick) showWall(url, p);
   }
 
   function renderAmbient() {
@@ -660,30 +824,29 @@
       a[2].appendChild(document.createTextNode(Data.degrees(w.temp) + '  ' + Data.condition(w.code, w.isDay)));
       if (Data.city) el('span', 'city', a[2], Data.city);
     }
-    var sc = $('scene').children, time = formatDate('format|h:mm', d.getTime());
-    sc[1].firstChild.textContent = sc[1].lastChild.textContent = time;
-    sc[3].innerHTML = '';
-    sc[3].appendChild(document.createTextNode(a[1].textContent));
+    var s = $('scene'), time = formatDate('format|h:mm', d.getTime()), date = s.querySelector('.date');
+    s.querySelector('.fill').textContent = s.querySelector('.rim').textContent = time;
+    date.innerHTML = '';
+    if (sceneGreet) el('span', 'greet', date, sceneGreet);
+    date.appendChild(document.createTextNode(a[1].textContent));
     if (w && Prefs.weather()) {
-      sym(Data.symbol(w.code, w.isDay), sc[3]);
-      sc[3].appendChild(document.createTextNode(Data.degrees(w.temp)));
+      sym(Data.symbol(w.code, w.isDay), date);
+      date.appendChild(document.createTextNode(Data.degrees(w.temp)));
     }
     a[3].innerHTML = '';
-    if (wallPick) {
-      a[3].appendChild(document.createTextNode(wallPick.title));
-      if (wallPick.meta) el('span', '', a[3], wallPick.meta);
-    }
   }
 
-  /** On the minute, so the clock never runs late (the 30-second refresh could, by up to 30 s). */
+  /** On the minute, so the clock never runs late (the 30-second refresh could, by up to 30 s); the scene follows the hour. */
   function tickClock() {
     renderClock();
+    if (ambient()) applyScene();
     setTimeout(tickClock, 60000 - Date.now() % 60000 + 50);
   }
 
   /** The carousel: the focused pick (st.card) over the whole screen, its title, details and story, a dot for each. */
   function renderHero() {
     var on = ambient() && (st.zone === Z.HERO || st.zone === Z.TOP), p = on && cards[st.card];
+    fireworks();
     if (!p) return;
     var h = $('ambient').lastChild.children;
     h[0].textContent = p.title;
@@ -706,35 +869,61 @@
     }
   }
 
-  // MARK: - Keep watching (ambient, with Jellyfin): above the shelf, what's paused halfway on the server
+  // MARK: - Keep watching and For you (ambient): small cards above the shelf
 
-  var resumeList = [], RESUME_MAX = 5, resumeShown = '';
+  // Keep watching (with Jellyfin): the last 3 paused titles and the next episode of a show, then 3 picks (TMDB) on the
+  // right. One row for the remote.
+  var rowItems = [], rowShown = '', ROW_STEP = 232;
 
   function renderResume() {
-    resumeList = Data.resume.slice(0, RESUME_MAX);
-    var key = JSON.stringify(resumeList) + I18N.lang;
-    if (key === resumeShown) return;
-    resumeShown = key;
+    var resume = Data.resume, paused = [], next = null, seen = {};
+    for (var i = 0; i < resume.length; i++) {
+      var it = resume[i];
+      if (it.next) { if (!next && !seen[it.title]) next = it; continue; }
+      if (paused.length < 3) { paused.push(it); seen[it.title] = true; }
+    }
+    if (next && seen[next.title]) next = null;
+    var left = next ? paused.concat([next]) : paused, picks = [], have = {};
+    for (var j = 0; j < left.length; j++) if (left[j].id) have[left[j].kind + left[j].id] = true;
+    var all = Data.hasKey() ? Data.picks(TAB_KIND[0]) : [];
+    for (var k = 0; k < all.length && picks.length < 3; k++) if (all[k].backdrop && !have[all[k].kind + all[k].id]) picks.push(all[k]);
+    var items = [], x = 0;
+    for (var a = 0; a < left.length; a++) { items.push({kind: 'resume', it: left[a], x: x}); x += ROW_STEP; }
+    if (left.length) x += 48;
+    var picksAt = x;
+    for (var b = 0; b < picks.length; b++) { items.push({kind: 'pick', it: picks[b], x: x}); x += ROW_STEP; }
+    rowItems = items;
+    var key = JSON.stringify(left) + JSON.stringify(picks.map(function (p) { return p.id; })) + I18N.lang;
+    if (key === rowShown) return;
+    rowShown = key;
     var r = $('resume');
     r.innerHTML = '';
-    if (!resumeList.length) { st.resume = 0; if (st.zone === Z.RESUME) st.zone = Z.SHELF; return; }
-    el('div', 'label', r, tr('Keep watching'));
-    for (var i = 0; i < resumeList.length; i++) {
-      var it = resumeList[i], c = el('div', 'card', r);
-      c.style.left = (i * 316) + 'px';
-      c.style.backgroundImage = 'url(' + it.img + ')';
-      el('div', 'shade', c);
-      var t = el('div', 't', c, it.title);
-      if (it.sub) el('span', '', t, it.sub);
-      el('div', 'bar', c).appendChild(el('div', 'done')).style.width = Math.max(4, it.pct) + '%';
-      hover(c, Z.RESUME, i);
+    if (!items.length) { st.resume = 0; if (st.zone === Z.RESUME) st.zone = Z.SHELF; return; }
+    if (left.length) el('div', 'label', r, tr('Keep watching')).style.left = '2px';
+    if (picks.length) el('div', 'label', r, tr('For you')).style.left = (picksAt + 2) + 'px';
+    for (var c = 0; c < items.length; c++) {
+      var item = items[c], card = el('div', 'card', r), shown = item.it;
+      card.style.left = item.x + 'px';
+      card.style.backgroundImage = 'url(' + (item.kind === 'pick' ? Data.image(shown.backdrop, 'w300') : shown.img) + ')';
+      el('div', 'shade', card);
+      var t = el('div', 't', card, shown.title);
+      if (item.kind === 'resume' && shown.sub) el('span', '', t, shown.sub);
+      if (item.kind === 'pick' && shown.service) el('span', '', t, shown.service);
+      if (shown.next) el('div', 'badge', card, tr('Up next'));
+      else if (item.kind === 'resume') el('div', 'bar', card).appendChild(el('div', 'done')).style.width = Math.max(4, shown.pct) + '%';
+      hover(card, Z.RESUME, c);
     }
-    st.resume = Math.min(st.resume, resumeList.length - 1);
+    st.resume = Math.min(st.resume, items.length - 1);
   }
 
-  /** Opens a paused title: its page in Litefin (from its TMDB id), else the Jellyfin app. */
-  function openResume(it) {
-    var app = Data.appFor('jellyfin');
+  /** Opens a paused title: its page in Litefin (from its TMDB id), else the Jellyfin app. A pick opens where it streams. */
+  function openRowItem(item) {
+    if (item.kind === 'pick') {
+      var p = item.it, papp = Data.appFor(p.app);
+      if (papp) launcher(papp.id, papp.title, pickParams(p, papp))();
+      return;
+    }
+    var it = item.it, app = Data.appFor('jellyfin');
     if (!app) { toast(trf("Couldn't open {app}.", {app: 'Jellyfin'})); return; }
     var params = it.id && /litefin/i.test(app.id) ? {tmdbId: it.id, mediaType: it.kind, title: it.title} : null;
     launcher(app.id, app.title, params)();
@@ -1171,6 +1360,8 @@
         step: function (d) { Prefs.set('cards', 3 + (Prefs.cards() - 3 + (d || 1) + 4) % 4); renderCards(); }},
       {cat: 'Home Screen', label: tr('Ambient home'), toggle: Prefs.ambient(),
         step: function () { Prefs.set('ambient', !Prefs.ambient()); updateFocus(); }},
+      {cat: 'Home Screen', label: tr('Holidays'), toggle: Prefs.holidays(),
+        step: function () { Prefs.set('holidays', !Prefs.holidays()); applyScene(); }},
       {cat: 'Home Screen', label: tr('Watch from the screensaver'), toggle: Prefs.saverWatch(),
         step: function () { Prefs.set('saverWatch', !Prefs.saverWatch()); }},
       {cat: 'Weather', label: tr('Weather widget'), toggle: Prefs.weather(),
@@ -1719,7 +1910,7 @@
         if (shelf[st.shelf]) launcher(shelf[st.shelf].id, shelf[st.shelf].title)();
         return;
       case Z.RESUME:
-        if (resumeList[st.resume]) openResume(resumeList[st.resume]);
+        if (rowItems[st.resume]) openRowItem(rowItems[st.resume]);
         return;
       case Z.DRAWER:
         if (drawerItems[st.drawer]) drawerItems[st.drawer].run();
@@ -1777,7 +1968,7 @@
         else if (dy > 0) { openDrawer(); return; }
         else if (dy < 0 && ambient()) {
           // The carousel, on the pick it showed last; without picks the tabs (or nothing, without a key).
-          if (resumeList.length) { st.zone = Z.RESUME; st.resume = Math.min(st.resume, resumeList.length - 1); }
+          if (rowItems.length) { st.zone = Z.RESUME; st.resume = Math.min(st.resume, rowItems.length - 1); }
           else toHero();
         } else if (dy < 0) {
           if (cards.length) { st.zone = Z.CARDS; st.card = nearest(cardNodes, centerX(tiles[st.shelf])); }
@@ -1787,10 +1978,10 @@
       case Z.HERO:
         if (dx && cards.length) st.card = (st.card + dx + cards.length) % cards.length;
         else if (dy < 0) { st.zone = Z.TOP; st.top = st.tab; }
-        else if (dy > 0) st.zone = resumeList.length ? Z.RESUME : shelf.length ? Z.SHELF : Z.HERO;
+        else if (dy > 0) st.zone = rowItems.length ? Z.RESUME : shelf.length ? Z.SHELF : Z.HERO;
         break;
       case Z.RESUME:
-        if (dx) st.resume = Math.max(0, Math.min(resumeList.length - 1, st.resume + dx));
+        if (dx) st.resume = Math.max(0, Math.min(rowItems.length - 1, st.resume + dx));
         else if (dy < 0) toHero();
         else if (dy > 0 && shelf.length) st.zone = Z.SHELF;
         break;
@@ -2115,7 +2306,7 @@
     renderPanels();
     renderAmbient();
     renderResume();
-    nextWall(0);
+    if (ambient()) applyScene();
     checkNight();
     updateFocus();
   });
@@ -2141,6 +2332,7 @@
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) { hideSaver(); return; }
     idleAt = Date.now();
+    fireworks();
     loadApps(function (changed) { if (changed) { renderShelf(); renderDrawer(); updateFocus(); } Data.refresh(); });
   });
 
@@ -2150,21 +2342,19 @@
   TV.holdScreenSaver(function () { return !sheetOpen() && saverPhotos().length > 0; });
   fit();
   renderTop();
-  if (wallShown) showWall(wallShown, null);
   tickClock();
-  setInterval(function () { if (ambientOn() && !saverOn && !document.hidden) nextWall(1); }, WALL_EVERY);
   var early = null;
   try { early = listed && JSON.parse(listed); } catch (e) {}
   if (early && early.apps) {
     useApps(early.apps, early.inputs || []);
     renderAll();
-    nextWall(0);
+    if (ambient()) applyScene();
     restInDrawer();
   }
   loadApps(function (changed) {
     if (!early) renderAll();
     else if (changed) { renderShelf(); renderDrawer(); updateFocus(); }
-    nextWall(0);
+    if (ambient()) applyScene();
     restInDrawer();
     Data.refresh();
   });
@@ -2176,5 +2366,6 @@
   }, 30000);
 
   // For the browser preview and tests.
-  window.Foyer = {state: st, nextScene: nextScene, move: move, activate: activate, back: back, showSaver: showSaver, hideSaver: hideSaver, toast: toast};
+  window.Foyer = {state: st, sceneNow: sceneNow, holidayAt: holidayAt,
+    fakeScene: function (at, wx) { sceneFake = at ? {at: at, wx: wx} : null; applyScene(); }, move: move, activate: activate, back: back, showSaver: showSaver, hideSaver: hideSaver, toast: toast};
 })();

@@ -49,6 +49,7 @@ var Prefs = (function () {
     weather: function () { return pick('weather', true); },
     /** The ambient home: a pick's photo over the whole screen, the time and the weather, while the shelf has focus. */
     ambient: function () { return pick('ambient', CONFIG.ambientHome !== false) === true; },
+    holidays: function () { return pick('holidays', true) === true; },
     /** OK on the screensaver opens the title it shows, in its app; any other key only closes it (off by default). */
     saverWatch: function () { return pick('saverWatch', false) === true; },
     /** The weather card's forecast: 'hours' (the next 6 hours) or 'days' (the next 5 days). */
@@ -418,36 +419,45 @@ var Data = (function () {
     withUser(function () {
       get(JF_URL + '/Users/' + jfUser + '/Items/Resume?Limit=10&MediaTypes=Video&Fields=ProviderIds&EnableTotalRecordCount=false', h, function (err, res) {
         if (err || !res || !res.Items) { end(null); return; }
-        var items = res.Items, shows = [];
-        for (var i = 0; i < items.length; i++) if (items[i].SeriesId && shows.indexOf(items[i].SeriesId) < 0) shows.push(items[i].SeriesId);
-        function build(tmdbOf) {
-          var out = [], seen = {};
-          for (var j = 0; j < items.length; j++) {
-            var it = items[j], ep = it.Type === 'Episode', tags = it.ImageTags || {};
-            if (ep && seen[it.SeriesId]) continue;   // a show once, its last episode (newest first)
-            if (ep) seen[it.SeriesId] = true;
-            var tmdb = ep ? tmdbOf[it.SeriesId] : it.ProviderIds && (it.ProviderIds.Tmdb || it.ProviderIds.tmdb);
-            // A picture without a logo in it (Thumbs have one), under the title: the episode's still, else the backdrop.
-            var img = ep ? (tags.Primary ? jfImage(it.Id, 'Primary') : jfImage(it.ParentBackdropItemId || it.SeriesId, 'Backdrop'))
-                : (it.BackdropImageTags || []).length ? jfImage(it.Id, 'Backdrop') : jfImage(it.Id, tags.Thumb ? 'Thumb' : 'Primary');
-            out.push({
-              title: ep ? it.SeriesName || it.Name : it.Name || '',
-              sub: ep ? 'S' + it.ParentIndexNumber + ' E' + it.IndexNumber + (it.Name ? ' · ' + it.Name : '') : it.ProductionYear ? String(it.ProductionYear) : '',
-              img: img, pct: Math.round((it.UserData && it.UserData.PlayedPercentage) || 0),
-              id: tmdb ? +tmdb : 0, kind: ep ? 'tv' : 'movie'
-            });
-          }
-          end(out);
-        }
-        if (!shows.length) { build({}); return; }
-        get(JF_URL + '/Items?Ids=' + shows.join(',') + '&Fields=ProviderIds&EnableImages=false', h, function (err2, res2) {
-          var map = {};
-          var list = (!err2 && res2 && res2.Items) || [];
-          for (var k = 0; k < list.length; k++) map[list[k].Id] = list[k].ProviderIds && (list[k].ProviderIds.Tmdb || list[k].ProviderIds.tmdb);
-          build(map);
+        // The next episode of the shows being watched (not started yet): Jellyfin's Next Up.
+        get(JF_URL + '/Shows/NextUp?UserId=' + jfUser + '&Limit=6&Fields=ProviderIds&EnableTotalRecordCount=false', h, function (err3, up) {
+          var nextUp = (!err3 && up && up.Items) || [];
+          for (var u = 0; u < nextUp.length; u++) nextUp[u].foyerNext = true;
+          withShows(res.Items.concat(nextUp));
         });
       });
     });
+    function withShows(items) {
+      var shows = [];
+      for (var i = 0; i < items.length; i++) if (items[i].SeriesId && shows.indexOf(items[i].SeriesId) < 0) shows.push(items[i].SeriesId);
+      function build(tmdbOf) {
+        var out = [], seen = {};
+        for (var j = 0; j < items.length; j++) {
+          var it = items[j], ep = it.Type === 'Episode', tags = it.ImageTags || {};
+          if (ep && seen[it.SeriesId]) continue;   // a show once, its last episode (newest first)
+          if (ep) seen[it.SeriesId] = true;
+          var next = !!it.foyerNext;
+          var tmdb = ep ? tmdbOf[it.SeriesId] : it.ProviderIds && (it.ProviderIds.Tmdb || it.ProviderIds.tmdb);
+          // A picture without a logo in it (Thumbs have one), under the title: the episode's still, else the backdrop.
+          var img = ep ? (tags.Primary ? jfImage(it.Id, 'Primary') : jfImage(it.ParentBackdropItemId || it.SeriesId, 'Backdrop'))
+              : (it.BackdropImageTags || []).length ? jfImage(it.Id, 'Backdrop') : jfImage(it.Id, tags.Thumb ? 'Thumb' : 'Primary');
+          out.push({
+            title: ep ? it.SeriesName || it.Name : it.Name || '',
+            sub: ep ? 'S' + it.ParentIndexNumber + ' E' + it.IndexNumber + (it.Name ? ' · ' + it.Name : '') : it.ProductionYear ? String(it.ProductionYear) : '',
+            img: img, pct: Math.round((it.UserData && it.UserData.PlayedPercentage) || 0),
+            id: tmdb ? +tmdb : 0, kind: ep ? 'tv' : 'movie', next: next
+          });
+        }
+        end(out);
+      }
+      if (!shows.length) { build({}); return; }
+      get(JF_URL + '/Items?Ids=' + shows.join(',') + '&Fields=ProviderIds&EnableImages=false', h, function (err2, res2) {
+        var map = {};
+        var list = (!err2 && res2 && res2.Items) || [];
+        for (var k = 0; k < list.length; k++) map[list[k].Id] = list[k].ProviderIds && (list[k].ProviderIds.Tmdb || list[k].ProviderIds.tmdb);
+        build(map);
+      });
+    }
   }
 
   var cache = stored('recs') || {};
@@ -839,6 +849,12 @@ var Data = (function () {
     picks: now,
     showcase: all,
     image: function (path, size) { return path ? 'https://image.tmdb.org/t/p/' + (size || 'w1280') + path : ''; },
+
+    /** Sunrise and sunset today at the location, in minutes after midnight (without a forecast, 6:00 and 18:00). */
+    sun: function () {
+      function hm(t, fallback) { if (!t) return fallback; var x = new Date(t); return x.getHours() * 60 + x.getMinutes(); }
+      return {rise: hm(weather && weather.sunrise, 360), set: hm(weather && weather.sunset, 1080)};
+    },
 
     /** Night at the location: from sunset to sunrise (the last forecast; without one, 6:00 and 18:00). */
     isNight: function (at) {
