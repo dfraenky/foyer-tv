@@ -22,13 +22,14 @@ Open source, made to be adapted with an AI agent like [Claude Code](https://clau
 
 ## What you get
 
-- **The ambient home.** While your apps have focus, a pick's photo fills the screen, sharp, a new one every 45 seconds, with the time, the date and the weather at the top left.
+- **The ambient home.** While your apps have focus, a landscape fills the screen with a big clock standing behind its hills, then a pick's photo, sharp, with the time, the date and the weather at the top left. They take turns every 45 seconds.
+- **Keep watching.** With Jellyfin, what you paused halfway sits above the dock with its progress. OK opens it in Litefin (or the Jellyfin app).
 - **A carousel of picks.** Press ↑: the picks of this week go by over the whole screen (← →), with their title, details and story. *Explore*, *Movies*, *Shows* and *Anime* sit at the top right. OK opens the pick.
 - **Every app, one press down.** ↓ shows the TV's inputs and shortcuts, then all your apps.
 - **Hold OK on an app** for its menu: move it, put it on or off the dock, or uninstall it (on a rooted LG TV).
 - **No ads.** No sponsored rows, banners or autoplaying promos.
 - **Smooth on real TVs.** 60 fps on an LG OLED C1 (webOS 6), which draws the page at twice its size: `performance=auto` turns shadows and animations off where the TV can't keep up.
-- **Day and night**, a screensaver of the picks with a big clock, 26 languages, and settings on the TV itself.
+- **Day and night**, a screensaver of the picks with a big clock, 26 languages, and settings on the TV itself, sorted into categories.
 
 ## Where a pick opens
 
@@ -191,6 +192,7 @@ server when you set one, and Binance only when `show_crypto=true`. Your settings
 - The LG version builds on what [@danielthejoker18](https://github.com/danielthejoker18) found in [FreeMyTvWebOS](https://github.com/danielthejoker18/FreeMyTvWebOS) (MIT).
 - [Litefin](https://github.com/MoazSalem/litefin) by [@MoazSalem](https://github.com/MoazSalem); [LG Input Hook](https://github.com/Simon34545/lginputhook); the [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel).
 - The ambient home was inspired by ProjectHiten, a home replacement for rooted LG TVs shown on r/webos.
+- The scenes and the clock behind their hills come from [couch-tv](https://github.com/Seagey/couch-tv) by [@Seagey](https://github.com/Seagey) (MIT): its AI-made landscapes, their cut-outs and glass, free to use ([web/scenes/CREDITS.md](web/scenes/CREDITS.md)). Clock font: Antonio (SIL OFL 1.1).
 - This product uses the TMDB API but is not endorsed or certified by [TMDB](https://www.themoviedb.org/).
 - Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).
 - Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0). Font: [Inter](https://rsms.me/inter/) (SIL OFL 1.1).

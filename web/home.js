@@ -321,8 +321,8 @@
 
   // HERO: the ambient home's carousel (↑ from the shelf); ALL: every app, in the drawer under the inputs (ambient);
   // MENU: an app's menu (OK held on it).
-  var Z = {TOP: 'top', CARDS: 'cards', HERO: 'hero', SHELF: 'shelf', DRAWER: 'drawer', ALL: 'all', MENU: 'menu', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', ABOUT: 'about'};
-  var st = {zone: Z.SHELF, top: 0, tab: 0, card: 0, shelf: 0, drawer: 0, all: 0, menu: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0, key: 0};
+  var Z = {TOP: 'top', CARDS: 'cards', HERO: 'hero', RESUME: 'resume', SHELF: 'shelf', DRAWER: 'drawer', ALL: 'all', MENU: 'menu', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', ABOUT: 'about'};
+  var st = {zone: Z.SHELF, top: 0, tab: 0, card: 0, resume: 0, cat: 0, side: true, shelf: 0, drawer: 0, all: 0, menu: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0, key: 0};
   var cards = [];
 
   function sheetOpen() { return st.zone === Z.APPS || st.zone === Z.SETTINGS || st.zone === Z.EDIT || st.zone === Z.LANG || st.zone === Z.CITY || st.zone === Z.KEY || st.zone === Z.ABOUT; }
@@ -353,7 +353,12 @@
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.APPS && st.grid === i);
     var rows = Math.max(1, Math.ceil(others.length / 5)), r = Math.floor(st.grid / 5), first = Math.max(0, Math.min(rows - 3, r - 1));
     $('apps').lastChild.style.webkitTransform = $('apps').lastChild.style.transform = 'translateY(' + (-first * 239) + 'px)';
-    focusRows($('settings'), st.row, st.zone === Z.SETTINGS);
+    focusRows($('settings'), st.row, st.zone === Z.SETTINGS && !st.side);
+    list = $('settings').querySelectorAll('.cat');
+    for (i = 0; i < list.length; i++) {
+      setClass(list[i], 'on', i === st.cat);
+      setClass(list[i], 'focus', st.zone === Z.SETTINGS && st.side && i === st.cat);
+    }
     focusRows($('shelfedit'), st.edit, st.zone === Z.EDIT);
     focusRows($('langpick'), st.lang, st.zone === Z.LANG);
     if (langHint) langHint.textContent = (st.lang + 1) + ' / ' + languageChoices().length + '  ·  ' + tr('OK picks, Back cancels.');
@@ -368,6 +373,10 @@
     setClass(body, 'drawer-open', inDrawer);
     setClass(body, 'ambient', amb);
     setClass(body, 'hero-on', amb && (st.zone === Z.HERO || st.zone === Z.TOP));
+    setClass(body, 'scene-on', amb && sceneOn && st.zone !== Z.HERO && st.zone !== Z.TOP);
+    setClass(body, 'kw-on', amb && resumeList.length > 0);
+    list = $('resume').querySelectorAll('.card');
+    for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.RESUME && st.resume === i);
     setClass(body, 'menu-on', st.zone === Z.MENU);
     setClass(body, 'night', amb || lastNight === true);
     scrollDrawer();
@@ -561,8 +570,48 @@
   var wallAt = -1, wallFront = 0, wallShown = '', wallWanted = '', wallPick = null, WALL_EVERY = 45000;
   try { wallShown = localStorage.getItem('foyer.wall') || ''; } catch (e) {}
 
-  /** The ambient look: on in Home Settings, with a photo to show. */
-  function ambient() { return Prefs.ambient() && !!wallShown; }
+  // Scenes (web/scenes, from couch-tv): a landscape with a big clock behind its hills (the cut-out `fg` is drawn over
+  // the clock, whose digits are filled with a blurred copy of the scene). The resting screen takes turns: a scene, a
+  // pick's photo, the next scene... Without picks, only scenes.
+  var SCENES = ['night', 'golden', 'water', 'fog', 'dawn'], NO_FG = {water: true};
+  var sceneAt = Math.floor(Math.random() * SCENES.length) - 1, sceneOn = false, sceneBusy = false, wallTurn = 0, sceneImgs = [];
+
+  /** The next scene, once its three pictures have loaded; a scene showing fades out first. */
+  function nextScene() {
+    if (sceneBusy) return;
+    sceneBusy = true;
+    sceneAt = (sceneAt + 1) % SCENES.length;
+    var name = SCENES[sceneAt], base = 'scenes/scene-' + name, urls = [base + '.jpg', base + '-glass.jpg'];
+    if (!NO_FG[name]) urls.push(base + '-fg.webp');
+    var left = urls.length, was = sceneOn;
+    sceneOn = false;
+    if (was) updateFocus();
+    function loaded() {
+      if (--left) return;
+      setTimeout(function () {
+        var s = $('scene'), c = s.children;
+        s.className = 's-' + name;
+        c[0].style.backgroundImage = 'url(' + urls[0] + ')';
+        c[1].firstChild.style.backgroundImage = 'url(' + urls[1] + ')';
+        c[2].style.backgroundImage = urls[2] ? 'url(' + urls[2] + ')' : 'none';
+        sceneOn = true;
+        sceneBusy = false;
+        renderAmbient();
+        updateFocus();
+      }, was ? 1200 : 0);   // after the fade out
+    }
+    for (var i = 0; i < urls.length; i++) {
+      var img = new Image();
+      img.onload = img.onerror = loaded;
+      img.src = urls[i];
+      // Decoded before it shows (Chrome 64+), else the first frame of the fade waits ~0.4 s for three 1080p pictures.
+      if (img.decode) { img.onload = null; img.decode().then(loaded, loaded); }
+      sceneImgs[i] = img;
+    }
+  }
+
+  /** The ambient look: on in Home Settings (the scenes need no photo). */
+  function ambient() { return Prefs.ambient(); }
   /** The shelf has focus in it: the photos take turns. */
   function ambientOn() { return ambient() && st.zone === Z.SHELF; }
 
@@ -589,7 +638,12 @@
   /** The next photo (`step` 1), or the one in turn again once the picks came or changed (0). */
   function nextWall(step) {
     var list = saverPhotos();
-    if (!list.length) return;
+    if (step) wallTurn++;
+    if (!list.length || wallTurn % 2 === 0) {
+      if (step || !sceneOn) nextScene();
+      return;
+    }
+    if (sceneOn) { sceneOn = false; updateFocus(); }
     wallAt = wallAt < 0 ? 0 : (wallAt + step) % list.length;
     var p = list[wallAt], url = Data.image(p.backdrop, 'w1280');
     if (url !== wallWanted || !wallPick) showWall(url, p);
@@ -605,6 +659,14 @@
       sym(Data.symbol(w.code, w.isDay), a[2]);
       a[2].appendChild(document.createTextNode(Data.degrees(w.temp) + '  ' + Data.condition(w.code, w.isDay)));
       if (Data.city) el('span', 'city', a[2], Data.city);
+    }
+    var sc = $('scene').children, time = formatDate('format|h:mm', d.getTime());
+    sc[1].firstChild.textContent = sc[1].lastChild.textContent = time;
+    sc[3].innerHTML = '';
+    sc[3].appendChild(document.createTextNode(a[1].textContent));
+    if (w && Prefs.weather()) {
+      sym(Data.symbol(w.code, w.isDay), sc[3]);
+      sc[3].appendChild(document.createTextNode(Data.degrees(w.temp)));
     }
     a[3].innerHTML = '';
     if (wallPick) {
@@ -642,6 +704,40 @@
         if (n && n.backdrop) new Image().src = Data.image(n.backdrop, 'w1280');
       }
     }
+  }
+
+  // MARK: - Keep watching (ambient, with Jellyfin): above the shelf, what's paused halfway on the server
+
+  var resumeList = [], RESUME_MAX = 5, resumeShown = '';
+
+  function renderResume() {
+    resumeList = Data.resume.slice(0, RESUME_MAX);
+    var key = JSON.stringify(resumeList) + I18N.lang;
+    if (key === resumeShown) return;
+    resumeShown = key;
+    var r = $('resume');
+    r.innerHTML = '';
+    if (!resumeList.length) { st.resume = 0; if (st.zone === Z.RESUME) st.zone = Z.SHELF; return; }
+    el('div', 'label', r, tr('Keep watching'));
+    for (var i = 0; i < resumeList.length; i++) {
+      var it = resumeList[i], c = el('div', 'card', r);
+      c.style.left = (i * 316) + 'px';
+      c.style.backgroundImage = 'url(' + it.img + ')';
+      el('div', 'shade', c);
+      var t = el('div', 't', c, it.title);
+      if (it.sub) el('span', '', t, it.sub);
+      el('div', 'bar', c).appendChild(el('div', 'done')).style.width = Math.max(4, it.pct) + '%';
+      hover(c, Z.RESUME, i);
+    }
+    st.resume = Math.min(st.resume, resumeList.length - 1);
+  }
+
+  /** Opens a paused title: its page in Litefin (from its TMDB id), else the Jellyfin app. */
+  function openResume(it) {
+    var app = Data.appFor('jellyfin');
+    if (!app) { toast(trf("Couldn't open {app}.", {app: 'Jellyfin'})); return; }
+    var params = it.id && /litefin/i.test(app.id) ? {tmdbId: it.id, mediaType: it.kind, title: it.title} : null;
+    launcher(app.id, app.title, params)();
   }
 
   // MARK: - Every app, in the drawer (ambient)
@@ -1065,53 +1161,53 @@
     var unit = Prefs.temperature(), theme = Prefs.theme();
     var auto = tr('Automatic'), picked = pickedLanguage();
     var rows = [
-      {label: tr('Language'), value: picked === 'auto' ? auto : I18N.languageName(picked), opens: true, language: true,
+      {cat: 'General', label: tr('Language'), value: picked === 'auto' ? auto : I18N.languageName(picked), opens: true, language: true,
         step: function (d) { if (d >= 0) openLanguages(); }},
-      {label: tr('Temperature'), value: unit === 'C' ? '°C' : unit === 'F' ? '°F' : tr('unit|Automatic'),
+      {cat: 'Weather', label: tr('Temperature'), value: unit === 'C' ? '°C' : unit === 'F' ? '°F' : tr('unit|Automatic'),
         step: function (d) { cycle('temperature', ['auto', 'C', 'F'], unit, d); renderPanels(); }},
-      {label: tr('Theme'), value: theme === 'light' ? tr('Light') : theme === 'dark' ? tr('Dark') : auto,
+      {cat: 'Home Screen', label: tr('Theme'), value: theme === 'light' ? tr('Light') : theme === 'dark' ? tr('Dark') : auto,
         step: function (d) { cycle('theme', ['auto', 'light', 'dark'], theme, d); checkNight(); }},
-      {label: tr('Picks per tab'), value: String(Prefs.cards()),
+      {cat: 'Home Screen', label: tr('Picks per tab'), value: String(Prefs.cards()),
         step: function (d) { Prefs.set('cards', 3 + (Prefs.cards() - 3 + (d || 1) + 4) % 4); renderCards(); }},
-      {label: tr('Ambient home'), toggle: Prefs.ambient(),
+      {cat: 'Home Screen', label: tr('Ambient home'), toggle: Prefs.ambient(),
         step: function () { Prefs.set('ambient', !Prefs.ambient()); updateFocus(); }},
-      {label: tr('Watch from the screensaver'), toggle: Prefs.saverWatch(),
+      {cat: 'Home Screen', label: tr('Watch from the screensaver'), toggle: Prefs.saverWatch(),
         step: function () { Prefs.set('saverWatch', !Prefs.saverWatch()); }},
-      {label: tr('Weather widget'), toggle: Prefs.weather(),
+      {cat: 'Weather', label: tr('Weather widget'), toggle: Prefs.weather(),
         step: function () { Prefs.set('weather', !Prefs.weather()); renderPanels(); }},
-      {label: tr('City'), value: Prefs.city() || '—', opens: true, city: true,
+      {cat: 'Weather', label: tr('City'), value: Prefs.city() || '—', opens: true, city: true,
         step: function (d) { if (d >= 0) openCities(); }},
-      {label: tr('Forecast'), value: Prefs.forecast() === 'days' ? tr('Next days') : tr('Next hours'),
+      {cat: 'Weather', label: tr('Forecast'), value: Prefs.forecast() === 'days' ? tr('Next days') : tr('Next hours'),
         step: function (d) { cycle('forecast', ['hours', 'days'], Prefs.forecast(), d); renderPanels(); }},
-      {label: tr('Quotes widget'), toggle: Prefs.quotes(),
+      {cat: 'Quotes widget', label: tr('Quotes widget'), toggle: Prefs.quotes(),
         step: function () { Prefs.set('quotes', !Prefs.quotes()); Data.settingsChanged(); }}
     ];
     var names = ['Bitcoin', 'Ethereum', 'Solana', tr('Dollar')];
     var count = Data.currency === 'BRL' ? 4 : 3;
     for (var i = 0; i < count; i++) {
       (function (i) {
-        rows.push({label: names[i], toggle: Prefs.quotes() && Prefs.coin(i), dim: !Prefs.quotes(),
+        rows.push({cat: 'Quotes widget', label: names[i], toggle: Prefs.quotes() && Prefs.coin(i), dim: !Prefs.quotes(),
           step: function () { if (Prefs.quotes()) { Prefs.setCoin(i, !Prefs.coin(i)); Data.settingsChanged(); } }});
       })(i);
     }
-    rows.push({label: tr('TMDB key'), value: Prefs.tmdbKey().length >= 4 ? '•••• ' + Prefs.tmdbKey().slice(-4) : tr('Not set'), opens: true, tmdb: true,
+    rows.push({cat: 'Picks', label: tr('TMDB key'), value: Prefs.tmdbKey().length >= 4 ? '•••• ' + Prefs.tmdbKey().slice(-4) : tr('Not set'), opens: true, tmdb: true,
       step: function (d) { if (d >= 0) openKey(); }});
     var sv = Data.services();
     if (sv.length) {
       var someOff = false;   // only the services this TV has count
       for (var q = 0; q < sv.length; q++) someOff = someOff || Prefs.serviceOff(sv[q].key);
-      rows.push({label: tr('Picks from'), value: someOff ? tr('services|Some') : tr('services|All'),
+      rows.push({cat: 'Picks', label: tr('Picks from'), value: someOff ? tr('services|Some') : tr('services|All'),
         step: function () { Prefs.set('servicesOff', []); Data.settingsChanged(); }});
       for (var j = 0; j < sv.length; j++) {
         (function (key, name) {
-          rows.push({label: name, toggle: !Prefs.serviceOff(key),
+          rows.push({cat: 'Picks', label: name, toggle: !Prefs.serviceOff(key),
             step: function () { Prefs.setServiceOff(key, !Prefs.serviceOff(key)); Data.refresh(); Data.settingsChanged(); }});
         })(sv[j].key, sv[j].name);
       }
     }
-    rows.push({label: tr('Shelf'), value: '›', shelf: true, step: function (d) { if (d >= 0) openShelfEdit(); }});
-    rows.push({label: tr('About this TV'), value: '›', about: true, step: function (d) { if (d >= 0) openAbout(); }});
-    if (TV.canOpenSettings) rows.push({label: tr('TV Settings'), value: '›', step: function (d) { if (d >= 0) tvSettings(); }});
+    rows.push({cat: 'Home Screen', label: tr('Shelf'), value: '›', shelf: true, step: function (d) { if (d >= 0) openShelfEdit(); }});
+    rows.push({cat: 'General', label: tr('About this TV'), value: '›', about: true, step: function (d) { if (d >= 0) openAbout(); }});
+    if (TV.canOpenSettings) rows.push({cat: 'General', label: tr('TV Settings'), value: '›', step: function (d) { if (d >= 0) tvSettings(); }});
     return rows;
   }
 
@@ -1120,7 +1216,11 @@
     Prefs.set(name, values[(i + (d || 1) + values.length) % values.length]);
   }
 
-  var rowsNow = [];
+  // Home Settings: the categories on the left (↑ ↓), their rows on the right (→ or OK goes in, Back comes out).
+  var rowsNow = [], CATS = ['General', 'Home Screen', 'Weather', 'Picks', 'Quotes widget'];
+  function catName(c) {
+    return {General: tr('General'), 'Home Screen': tr('Home Screen'), Weather: tr('Weather'), Picks: tr('Picks'), 'Quotes widget': tr('Quotes widget')}[c];
+  }
 
   function renderSettings() {
     var box = $('settings').firstChild;
@@ -1128,9 +1228,26 @@
     var title = el('div', 'title', box);
     sym('settings', title);
     title.appendChild(document.createTextNode(tr('Home Settings')));
-    var list = el('div', 'list', box), holder = el('div', 'rows', list);
-    rowsNow = settingRows();
-    list.style.height = Math.min(rowsNow.length, 7) * 78 + 'px';
+    var all = settingRows(), cats = [];
+    for (var c = 0; c < CATS.length; c++) {
+      for (var k = 0; k < all.length; k++) if (all[k].cat === CATS[c]) { cats.push(CATS[c]); break; }
+    }
+    st.cat = Math.max(0, Math.min(cats.length - 1, st.cat));
+    var side = el('div', 'side', box);
+    for (var n = 0; n < cats.length; n++) {
+      (function (n) {
+        var item = el('div', 'cat', side, catName(cats[n]));
+        item.onmouseover = function () {
+          if (st.zone !== Z.SETTINGS) return;
+          st.side = true;
+          if (st.cat !== n) { st.cat = n; st.row = 0; renderSettings(); } else updateFocus();
+        };
+        item.onclick = function () { item.onmouseover(); };
+      })(n);
+    }
+    rowsNow = all.filter(function (r) { return r.cat === cats[st.cat]; });
+    var main = el('div', 'main', box), list = el('div', 'list', main), holder = el('div', 'rows', list);
+    list.style.height = Math.min(Math.max(rowsNow.length, cats.length), 7) * 78 + 'px';
     for (var i = 0; i < rowsNow.length; i++) {
       var r = rowsNow[i], row = el('div', 'row' + (r.dim ? ' dim' : ''), holder, r.label);
       if (r.toggle !== undefined) setClass(el('div', 'toggle', row), 'on', r.toggle);
@@ -1142,16 +1259,27 @@
       }
       hover(row, Z.SETTINGS, i);
     }
-    el('div', 'hint', box, tr('OK or the arrows change the value.'));
+    el('div', 'hint', main, tr('OK or the arrows change the value.'));
     updateFocus();
   }
 
   function openSettings() {
     st.zone = Z.SETTINGS;
     st.row = 0;
+    st.cat = 0;
+    st.side = true;
     renderSettings();
     setClass($('settings'), 'open', true);
     updateFocus();
+  }
+
+  /** Back from a sheet Home Settings opened: on its row, in the category it was in. */
+  function backToSettings(flag) {
+    st.zone = Z.SETTINGS;
+    st.side = false;
+    renderSettings();
+    setClass($('settings'), 'open', true);
+    for (var i = 0; i < rowsNow.length; i++) if (rowsNow[i][flag]) st.row = i;
   }
 
   // MARK: - Language: a list of every catalogue in its own name, as on Android (moving through it doesn't switch the app)
@@ -1202,8 +1330,7 @@
       renderAll();
       Data.refresh();   // the picks' titles and genres come in the new language
     }
-    openSettings();
-    for (var i = 0; i < rowsNow.length; i++) if (rowsNow[i].language) st.row = i;
+    backToSettings('language');
     updateFocus();
   }
 
@@ -1317,8 +1444,7 @@
       Prefs.setCity(place.city, place.lat, place.lon);
       Data.cityChanged();
     }
-    openSettings();
-    for (var i = 0; i < rowsNow.length; i++) if (rowsNow[i].city) st.row = i;
+    backToSettings('city');
     updateFocus();
   }
 
@@ -1430,8 +1556,7 @@
     keyAsking = false;
     var f = fieldOf('keypick');
     if (f) f.value = '';
-    openSettings();
-    for (var i = 0; i < rowsNow.length; i++) if (rowsNow[i].tmdb) st.row = i;
+    backToSettings('tmdb');
     updateFocus();
   }
 
@@ -1486,8 +1611,7 @@
 
   function closeAbout() {
     setClass($('about'), 'open', false);
-    openSettings();
-    for (var i = 0; i < rowsNow.length; i++) if (rowsNow[i].about) st.row = i;
+    backToSettings('about');
     updateFocus();
   }
 
@@ -1594,6 +1718,9 @@
       case Z.SHELF:
         if (shelf[st.shelf]) launcher(shelf[st.shelf].id, shelf[st.shelf].title)();
         return;
+      case Z.RESUME:
+        if (resumeList[st.resume]) openResume(resumeList[st.resume]);
+        return;
       case Z.DRAWER:
         if (drawerItems[st.drawer]) drawerItems[st.drawer].run();
         return;
@@ -1607,6 +1734,7 @@
         if (others[st.grid]) launcher(others[st.grid].id, others[st.grid].title)();
         return;
       case Z.SETTINGS:
+        if (st.side) { if (rowsNow.length) { st.side = false; st.row = 0; updateFocus(); } return; }
         if (rowsNow[st.row]) { rowsNow[st.row].step(1); if (st.zone === Z.SETTINGS) renderSettings(); }
         return;
       case Z.EDIT:
@@ -1634,6 +1762,12 @@
     renderCards();
   }
 
+  /** ↑ into the carousel, on the pick it showed last; without picks the tabs (or nothing, without a key). */
+  function toHero() {
+    if (cards.length) { st.zone = Z.HERO; st.card = Math.min(st.card, cards.length - 1); }
+    else if (Data.hasKey()) { st.zone = Z.TOP; st.top = st.tab; }
+  }
+
   function move(dx, dy) {
     var tiles = $('tiles').children, cardNodes = $('cards').children;
     if (st.moving) { moveApp(dx, dy); return; }
@@ -1643,8 +1777,8 @@
         else if (dy > 0) { openDrawer(); return; }
         else if (dy < 0 && ambient()) {
           // The carousel, on the pick it showed last; without picks the tabs (or nothing, without a key).
-          if (cards.length) { st.zone = Z.HERO; st.card = Math.min(st.card, cards.length - 1); }
-          else if (Data.hasKey()) { st.zone = Z.TOP; st.top = st.tab; }
+          if (resumeList.length) { st.zone = Z.RESUME; st.resume = Math.min(st.resume, resumeList.length - 1); }
+          else toHero();
         } else if (dy < 0) {
           if (cards.length) { st.zone = Z.CARDS; st.card = nearest(cardNodes, centerX(tiles[st.shelf])); }
           else { st.zone = Z.TOP; st.top = Data.hasKey() ? st.tab : NT; }
@@ -1653,7 +1787,12 @@
       case Z.HERO:
         if (dx && cards.length) st.card = (st.card + dx + cards.length) % cards.length;
         else if (dy < 0) { st.zone = Z.TOP; st.top = st.tab; }
-        else if (dy > 0) st.zone = shelf.length ? Z.SHELF : Z.HERO;
+        else if (dy > 0) st.zone = resumeList.length ? Z.RESUME : shelf.length ? Z.SHELF : Z.HERO;
+        break;
+      case Z.RESUME:
+        if (dx) st.resume = Math.max(0, Math.min(resumeList.length - 1, st.resume + dx));
+        else if (dy < 0) toHero();
+        else if (dy > 0 && shelf.length) st.zone = Z.SHELF;
         break;
       case Z.CARDS:
         if (dx) st.card = Math.max(0, Math.min(cards.length - 1, st.card + dx));
@@ -1696,10 +1835,18 @@
         if (g >= 0 && g < others.length && (dx === 0 || Math.floor(g / 5) === Math.floor(st.grid / 5))) st.grid = g;
         break;
       case Z.SETTINGS:
+        if (st.side) {
+          var cats = $('settings').querySelectorAll('.cat').length;
+          if (dy && st.cat + dy >= 0 && st.cat + dy < cats) { st.cat += dy; st.row = 0; renderSettings(); }
+          else if (dx > 0 && rowsNow.length) { st.side = false; st.row = 0; }
+          break;
+        }
         if (dy) st.row = Math.max(0, Math.min(rowsNow.length - 1, st.row + dy));
         else if (dx && rowsNow[st.row]) {
           var r = rowsNow[st.row];
-          if (r.value !== '›') { r.step(dx); if (st.zone === Z.SETTINGS) renderSettings(); }
+          // ← on a row without values to go through: back to the categories.
+          if (dx < 0 && (r.toggle !== undefined || r.opens || r.value === '›')) st.side = true;
+          else if (r.value !== '›') { r.step(dx); if (st.zone === Z.SETTINGS) renderSettings(); }
         }
         break;
       case Z.EDIT:
@@ -1724,8 +1871,7 @@
     if (st.zone === Z.MENU) { if (menuAsk) { menuAsk = false; st.menu = 0; menuShown = ''; updateFocus(); } else closeMenu(); return; }
     if (st.zone === Z.EDIT) {
       setClass($('shelfedit'), 'open', false);
-      openSettings();
-      for (var i = 0; i < rowsNow.length; i++) if (rowsNow[i].shelf) st.row = i;   // back on the Shelf row, whatever follows it
+      backToSettings('shelf');
       updateFocus();
       return;
     }
@@ -1733,6 +1879,7 @@
     if (st.zone === Z.CITY) { closeCities(false); return; }
     if (st.zone === Z.KEY) { if (keyAsking) askRemoveKey(false); else closeKey(); return; }
     if (st.zone === Z.ABOUT) { closeAbout(); return; }
+    if (st.zone === Z.SETTINGS && !st.side) { st.side = true; updateFocus(); return; }
     if (sheetOpen()) { closeSheets(); return; }
     if (st.zone === Z.DRAWER || st.zone === Z.ALL) { closeDrawer(); return; }
     if (st.zone !== Z.SHELF && shelf.length) { st.zone = Z.SHELF; updateFocus(); return; }
@@ -1753,11 +1900,12 @@
       if (zone === Z.TOP) { st.top = index; if (index < NT) selectTab(index); }
       else if (zone === Z.CARDS) st.card = index;
       else if (zone === Z.SHELF) st.shelf = index;
+      else if (zone === Z.RESUME) st.resume = index;
       else if (zone === Z.DRAWER) st.drawer = index;
       else if (zone === Z.ALL) st.all = index;
       else if (zone === Z.MENU) st.menu = index;
       else if (zone === Z.APPS) st.grid = index;
-      else if (zone === Z.SETTINGS) st.row = index;
+      else if (zone === Z.SETTINGS) { st.row = index; st.side = false; }
       else if (zone === Z.EDIT) st.edit = index;
       else if (zone === Z.LANG) st.lang = index;
       else if (zone === Z.CITY) st.city = index;
@@ -1911,6 +2059,7 @@
     renderCards();
     renderShelf();
     renderDrawer();
+    renderResume();
     renderClock();
     checkNight();
     if (st.zone === Z.SETTINGS) renderSettings();
@@ -1965,8 +2114,10 @@
     renderCards();
     renderPanels();
     renderAmbient();
+    renderResume();
     nextWall(0);
     checkNight();
+    updateFocus();
   });
 
   /** drawer_first: the home screen rests with the drawer open (shelf in the middle, inputs and weather below). */
@@ -2025,5 +2176,5 @@
   }, 30000);
 
   // For the browser preview and tests.
-  window.Foyer = {state: st, move: move, activate: activate, back: back, showSaver: showSaver, hideSaver: hideSaver, toast: toast};
+  window.Foyer = {state: st, nextScene: nextScene, move: move, activate: activate, back: back, showSaver: showSaver, hideSaver: hideSaver, toast: toast};
 })();

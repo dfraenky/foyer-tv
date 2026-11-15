@@ -388,6 +388,68 @@ var Data = (function () {
     });
   }
 
+  // Keep watching: what's paused halfway on the server, for the user who watched last (an API key sees every user).
+  // Each opens its title in Litefin (TMDB id: a show's for an episode), or the Jellyfin app. Kept for the next start.
+  var resume = stored('resume') || [], resumeAt = 0, fetchingResume = false, jfUser = '';
+
+  function jfImage(id, type) { return JF_URL + '/Items/' + id + '/Images/' + type + '?fillWidth=480&quality=82'; }
+
+  function refreshResume() {
+    if (!JF_URL || !JF_KEY || fetchingResume || Date.now() - resumeAt < 25000) return;
+    fetchingResume = true;
+    resumeAt = Date.now();
+    var h = {Authorization: 'MediaBrowser Client="Foyer", Device="TV", DeviceId="foyer", Version="1", Token="' + JF_KEY + '"', Accept: 'application/json'};
+    function end(list) {
+      fetchingResume = false;
+      if (!list || JSON.stringify(list) === JSON.stringify(resume)) return;
+      resume = list;
+      store('resume', list);
+      changed();
+    }
+    function withUser(then) {
+      if (jfUser) { then(); return; }
+      get(JF_URL + '/Users', h, function (err, users) {
+        if (err || !users || !users.length) { end(null); return; }
+        users.sort(function (a, b) { return (b.LastActivityDate || '') > (a.LastActivityDate || '') ? 1 : -1; });
+        jfUser = users[0].Id;
+        then();
+      });
+    }
+    withUser(function () {
+      get(JF_URL + '/Users/' + jfUser + '/Items/Resume?Limit=10&MediaTypes=Video&Fields=ProviderIds&EnableTotalRecordCount=false', h, function (err, res) {
+        if (err || !res || !res.Items) { end(null); return; }
+        var items = res.Items, shows = [];
+        for (var i = 0; i < items.length; i++) if (items[i].SeriesId && shows.indexOf(items[i].SeriesId) < 0) shows.push(items[i].SeriesId);
+        function build(tmdbOf) {
+          var out = [], seen = {};
+          for (var j = 0; j < items.length; j++) {
+            var it = items[j], ep = it.Type === 'Episode', tags = it.ImageTags || {};
+            if (ep && seen[it.SeriesId]) continue;   // a show once, its last episode (newest first)
+            if (ep) seen[it.SeriesId] = true;
+            var tmdb = ep ? tmdbOf[it.SeriesId] : it.ProviderIds && (it.ProviderIds.Tmdb || it.ProviderIds.tmdb);
+            // A picture without a logo in it (Thumbs have one), under the title: the episode's still, else the backdrop.
+            var img = ep ? (tags.Primary ? jfImage(it.Id, 'Primary') : jfImage(it.ParentBackdropItemId || it.SeriesId, 'Backdrop'))
+                : (it.BackdropImageTags || []).length ? jfImage(it.Id, 'Backdrop') : jfImage(it.Id, tags.Thumb ? 'Thumb' : 'Primary');
+            out.push({
+              title: ep ? it.SeriesName || it.Name : it.Name || '',
+              sub: ep ? 'S' + it.ParentIndexNumber + ' E' + it.IndexNumber + (it.Name ? ' · ' + it.Name : '') : it.ProductionYear ? String(it.ProductionYear) : '',
+              img: img, pct: Math.round((it.UserData && it.UserData.PlayedPercentage) || 0),
+              id: tmdb ? +tmdb : 0, kind: ep ? 'tv' : 'movie'
+            });
+          }
+          end(out);
+        }
+        if (!shows.length) { build({}); return; }
+        get(JF_URL + '/Items?Ids=' + shows.join(',') + '&Fields=ProviderIds&EnableImages=false', h, function (err2, res2) {
+          var map = {};
+          var list = (!err2 && res2 && res2.Items) || [];
+          for (var k = 0; k < list.length; k++) map[list[k].Id] = list[k].ProviderIds && (list[k].ProviderIds.Tmdb || list[k].ProviderIds.tmdb);
+          build(map);
+        });
+      });
+    });
+  }
+
   var cache = stored('recs') || {};
   var picks = cache.picks || [], anime = cache.anime || [], listAt = cache.listAt || 0, period = cache.period, listLang = cache.lang || '', stamp = cache.stamp || '';
   var fetchingRecs = false, failedAt = 0, recsError = '';
@@ -757,7 +819,8 @@ var Data = (function () {
     appFor: appFor,
     usable: usable,
     services: services,
-    refresh: function () { refreshWeather(); refreshPrices(); refreshRecs(); },
+    refresh: function () { refreshWeather(); refreshPrices(); refreshRecs(); refreshResume(); },
+    get resume() { return JF_URL ? resume : []; },
     settingsChanged: function () { pricesAt = 0; refreshPrices(); changed(); },
     findCity: findCity,
     /** Another city picked: its weather now (none shown until it comes). */
