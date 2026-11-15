@@ -37,9 +37,12 @@ function log(text) {
   try { fs.appendFileSync(LOG, new Date().toISOString() + ' ' + text + '\n'); } catch (e) {}
 }
 
-function launch(why) {
+/** closed: the app that just closed, for the page (back from a trailer in YouTube: its info card again). */
+function launch(why, closed) {
   log('open ' + APP + ' (' + why + ')');
-  spawn('luna-send', ['-n', '1', 'luna://com.webos.applicationManager/launch', JSON.stringify({id: APP})],
+  var message = {id: APP};
+  if (closed) message.params = {closed: closed};
+  spawn('luna-send', ['-n', '1', 'luna://com.webos.applicationManager/launch', JSON.stringify(message)],
     {stdio: 'ignore'}).on('error', function () {});
 }
 
@@ -70,7 +73,7 @@ function front(id) {
     // An app closed: Foyer at once, before LG's home comes up. A moment later, so a TV turning off (which
     // closes the app first) says so before.
     setTimeout(function () {
-      if (now === '' && on && retry()) launch('after ' + before);
+      if (now === '' && on && retry()) launch('after ' + before, before);
     }, 300);
   } else if (id === HOME) {
     // LG's home, after an app closed, the Home key without Input Hook, or still coming up over Foyer a moment
@@ -78,7 +81,7 @@ function front(id) {
     var closed = before !== APP && before !== HOME;
     if (closed || (before === APP && Date.now() - episode < 10000)) {
       setTimeout(function () {
-        if (now === HOME && retry()) launch(closed ? 'after ' + (before || 'start') : 'again, LG home came up over it');
+        if (now === HOME && retry()) launch(closed ? 'after ' + (before || 'start') : 'again, LG home came up over it', closed ? before : '');
       }, 400);
     }
   }

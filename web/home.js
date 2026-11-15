@@ -1091,9 +1091,9 @@
   }
 
   function redrawInfo() {
-    var label = infoActions[st.info] && infoActions[st.info].label;
+    var label = infoWant || (infoActions[st.info] && infoActions[st.info].label);
     renderInfo();
-    for (var i = 0; i < infoActions.length; i++) if (infoActions[i].label === label) st.info = i;
+    for (var i = 0; i < infoActions.length; i++) if (infoActions[i].label === label) { st.info = i; infoWant = ''; }
     st.info = Math.min(st.info, infoActions.length - 1);
     updateFocus();
   }
@@ -1106,12 +1106,38 @@
     });
   }
 
-  /** The trailer in the TV's YouTube app (Back there comes back to Foyer). */
+  // Back from the trailer: the card again, where it was (Discover's row and tile, or For you). Only when YouTube is what
+  // closed (the watcher says, rooted LG): Home still goes home.
+  var trailerReturn = null, infoWant = '';
+
+  /** The trailer in the TV's YouTube app (Back there comes back to Foyer, to this card). */
   function playTrailer(key) {
     var yt = null;
     for (var i = 0; i < apps.length; i++) if (/youtube\.leanback|youtube/i.test(apps[i].id) && !/kids|music/i.test(apps[i].id)) { yt = apps[i]; break; }
     if (!yt) { toast(trf("Couldn't open {app}.", {app: 'YouTube'})); return; }
+    trailerReturn = {at: Date.now(), app: yt.id, pick: infoPick, from: infoFrom, drow: st.drow, cols: discoverCols.slice(), resume: st.resume};
     launcher(yt.id, yt.title, {contentTarget: 'https://www.youtube.com/tv?v=' + key})();
+  }
+
+  /** Opened again after `closed` closed: true when that was the trailer, and its card is back. */
+  function backFromTrailer(closed) {
+    var r = trailerReturn;
+    trailerReturn = null;
+    if (!r || closed !== r.app || Date.now() - r.at > 3 * 3600000 || !r.pick) return false;
+    hideSaver();
+    closeSheets();
+    if (r.from === Z.DISCOVER) {
+      st.zone = Z.DISCOVER;
+      st.drow = r.drow;
+      discoverCols = r.cols;
+      renderDiscover();
+    } else {
+      st.zone = Z.RESUME;
+      st.resume = Math.min(r.resume, Math.max(0, rowItems.length - 1));
+    }
+    infoWant = tr('Trailer');
+    openInfo(r.pick);
+    return true;
   }
 
   function closeInfo() {
@@ -2815,10 +2841,14 @@
     updateFocus();
   }
 
-  function reopened() {
+  function reopened(e) {
     // LG: with handlesRelaunch the app has to come to the front itself, or opening it again while it runs shows nothing.
     if (window.PalmSystem && window.PalmSystem.activate) window.PalmSystem.activate();
-    reset();
+    var params = {};
+    // The launch's parameters: webOSRelaunch carries them, else PalmSystem has the last ones.
+    if (e && e.detail && typeof e.detail === 'object') params = e.detail;
+    else try { params = JSON.parse((window.PalmSystem && window.PalmSystem.launchParams) || '{}') || {}; } catch (err) {}
+    if (!backFromTrailer(params.closed)) reset();
     loadApps(function (changed) { if (changed) { renderShelf(); renderDrawer(); } restInDrawer(); Data.refresh(); });
   }
 
