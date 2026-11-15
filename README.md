@@ -6,13 +6,14 @@
 
 **A calm, ad-free home screen for LG and Samsung TVs, that takes you straight to the film.**
 
-Full-screen picks of what's trending, your apps in one dock, the time and the weather at a glance.<br>
-Every pick opens where *you* watch it: your Jellyfin library, Seerr to request it, or the streaming app you pay for.<br>
+A landscape that follows the seasons, the sun and the weather, with a big clock behind its hills; what you were<br>
+watching and what's trending one press up; your apps in one dock. Every title opens where *you* watch it:<br>
+your Jellyfin library, Seerr to request it, or the streaming app you pay for.<br>
 Open source, made to be adapted with an AI agent like [Claude Code](https://claude.com/claude-code).
 
 [What you get](#what-you-get) · [Where a pick opens](#where-a-pick-opens) · [Install on LG](#install-on-an-lg-tv) · [Rooted LG](#as-the-home-screen-on-a-rooted-lg-tv) · [Samsung](#samsung-tvs-tizen) · [Make it yours](#make-it-yours-with-an-ai-agent)
 
-<img src=".github/foyer-tour.webp" width="880" alt="Foyer on an LG TV: a film's photo over the whole screen with the time and weather, the carousel of picks with their story, the tabs, and an app's menu on the dock">
+<img src=".github/foyer-tour.webp" width="880" alt="Foyer on an LG TV: landscapes for autumn, winter, spring, Easter, summer and a rainy day with the clock behind the hills, Keep watching and For you above the dock, the Discover page with its rows and a title's card, and the Christmas screensaver with falling snow">
 
 </div>
 
@@ -27,11 +28,13 @@ Open source, made to be adapted with an AI agent like [Claude Code](https://clau
 - **Keep watching and For you.** With Jellyfin, the last three titles you paused (with their progress) and the next episode of a show (*New episode* when it came out this week) sit above the dock, next to three picks. OK opens a title in Litefin (or the Jellyfin app); hold OK on a paused one to remove it.
 - **Discover.** *More*, at the end of *For you*, opens a page like a streaming app's: the focused title over the top (its photo, details and story), and rows of what's trending (*Explore*, *Movies*, *Shows*, *Anime*), what's *Coming soon*, and what's *New on* Netflix, Prime Video, Disney+, Apple TV+, Paramount+ and WOW, those opening in Jellyfin when you have them and in Seerr to request them otherwise. OK opens a title; hold OK for its card: the year, the rating, the story, where it streams, its trailer (in YouTube), and *Request*, straight to Seerr (Home Settings > Picks > Seerr: its address and API key, typed on the TV or, on a rooted LG, pasted on your phone after scanning a QR code).
 - **A quiet screensaver.** The landscape alone, with its clock, weather and holidays, drifting slowly (kind to OLED screens).
+- **Keys from your phone.** On a rooted LG, Seerr's and TMDB's keys don't have to be typed with the remote: scan a QR code, paste them on your phone, and the TV checks and saves them.
+- **Back where you were.** After a trailer, closing YouTube brings back the title's card.
 - **Every app, one press down.** ↓ shows the TV's inputs and shortcuts, then all your apps.
 - **Hold OK on an app** for its menu: move it, put it on or off the dock, or uninstall it (on a rooted LG TV).
 - **No ads.** No sponsored rows, banners or autoplaying promos.
 - **Smooth on real TVs.** 60 fps on an LG OLED C1 (webOS 6), which draws the page at twice its size: `performance=auto` turns shadows and animations off where the TV can't keep up.
-- **Day and night**, a screensaver of the picks with a big clock, 26 languages, and settings on the TV itself, sorted into categories.
+- **26 languages**, and settings on the TV itself, sorted into categories. The classic layout (`ambient_home=false`) keeps a light day look and a dark night one, and a screensaver of the picks.
 
 ## Where a pick opens
 
@@ -78,7 +81,7 @@ how the project works and how to test on the TV. Try:
 - *"When a pick is on Netflix, open Netflix on that title."*
 - *"Add Plex as a place the picks can open, like Jellyfin."*
 - *"Put YouTube, Litefin and Spotify on the dock, in that order."*
-- *"Show the carousel's picks only from my library."*
+- *"Add a Discover row with what's new in my Jellyfin library."*
 - *"Make the clock smaller and move the weather under it."*
 
 It reads the code, makes the change, builds the package and installs it on your TV, and asks before anything important.
@@ -132,7 +135,8 @@ The same home screen as a Samsung app (Tizen, 2015 or newer), installed through 
 ## Settings
 
 The first values come from `config.properties` (created by the first build, never committed). Most can also be changed
-on the TV, in *Home Settings* (↓, then the shortcut), and the TV's choice wins.
+on the TV, in *Home Settings* (↓, then the shortcut), and the TV's choice wins. Two live only on the TV: *Holidays*
+(Home Screen) and *Seerr*'s address and API key (Picks).
 
 | Key | What it does | Default |
 |---|---|---|
@@ -161,16 +165,17 @@ it on the TV in *Home Settings* → *TMDB key* (the short 32-character *API Key*
 
 ## How it works
 
-- **Plain HTML, CSS and JavaScript** ([`web/`](web)), written for the Chromium of older TVs (ES5, no CSS variables, no frameworks). Only transform and opacity animate, and the background photos are plain images, so a TV's GPU keeps up.
+- **Plain HTML, CSS and JavaScript** ([`web/`](web)), written for the Chromium of older TVs (ES5, no CSS variables, no frameworks). Only transform and opacity animate, and the scenes are plain images (the clock's glass is a blurred copy behind the text, not a filter), so a TV's GPU keeps up.
+- **The scenes** are in [`web/scenes/`](web/scenes): a landscape, its cut-out (drawn over the clock) and a blurred copy for the clock's glass. [`tools/make_scene.py`](tools/make_scene.py) makes them from a photo of your own.
 - [`webos/build.py`](webos/build.py) packs it with `config.properties` into an `.ipk` without LG's tools; [`webos/install.py`](webos/install.py) installs it through Developer Mode, or over root SSH. On LG it lists and opens apps through the TV's service bus (Luna), as LG's launcher does. [`tizen/build.py`](tizen/build.py) makes the Samsung `.wgt`.
-- [`webos/root/`](webos/root): on a rooted LG TV, the watcher (Node, started at boot) that makes Foyer the home screen and uninstalls apps for it.
-- **Data** from TMDB (picks, which app streams what), your Jellyfin server, and Open-Meteo (forecast, sunrise and sunset).
+- [`webos/root/`](webos/root): on a rooted LG TV, the watcher (Node, started at boot) that makes Foyer the home screen, uninstalls apps for it, and serves the one-time page for your phone (with its QR code, [`qr.js`](webos/root/qr.js)).
+- **Data** from TMDB (picks, what's coming, which app streams what, trailers), your Jellyfin server (the library, Keep watching), Seerr (requests) and Open-Meteo (forecast, sunrise and sunset).
 - To preview it on a computer: `python3 webos/build.py --preview`, then open `out/webos/index.html`.
 
 | File | What it is |
 |---|---|
-| [`web/home.js`](web/home.js) | The home screen: ambient view, carousel, dock, apps, menus, settings |
-| [`web/data.js`](web/data.js) | The picks (TMDB, Jellyfin), where each opens (`SERVICES`), the weather |
+| [`web/home.js`](web/home.js) | The home screen: scenes and holidays, Keep watching, Discover, the info card, dock, apps, menus, settings |
+| [`web/data.js`](web/data.js) | The picks (TMDB, Jellyfin), Keep watching, Seerr, where each opens (`SERVICES`), the weather |
 | [`web/tv.js`](web/tv.js) | The TV's apps, inputs and keys, on LG and Samsung |
 | [`webos/root/launcher.js`](webos/root/launcher.js) | The rooted LG TV's watcher |
 
@@ -186,18 +191,23 @@ languages today. After changing text, `python3 tools/translate.py --check` lists
 ## Privacy
 
 No accounts, no analytics, no tracking. The TV talks to TMDB, Open-Meteo (with your city's coordinates), your Jellyfin
-server when you set one, and Binance only when `show_crypto=true`. Your settings stay on your computer and your TV.
+and Seerr servers when you set them, and Binance only when `show_crypto=true`; a trailer plays in the TV's YouTube app.
+The page for your phone exists only on your home network, for 5 minutes and one answer. Your settings stay on your
+computer and your TV.
 
 ## Credits
 
 - Based on [Free My TV](https://github.com/simbasjungles/free-my-tv) (MIT), by its contributors.
 - The LG version builds on what [@danielthejoker18](https://github.com/danielthejoker18) found in [FreeMyTvWebOS](https://github.com/danielthejoker18/FreeMyTvWebOS) (MIT).
-- [Litefin](https://github.com/MoazSalem/litefin) by [@MoazSalem](https://github.com/MoazSalem); [LG Input Hook](https://github.com/Simon34545/lginputhook); the [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel).
+- [Litefin](https://github.com/MoazSalem/litefin) by [@MoazSalem](https://github.com/MoazSalem); [Seerr](https://github.com/seerr-team/seerr); [LG Input Hook](https://github.com/Simon34545/lginputhook); the [webOS Homebrew Channel](https://github.com/webosbrew/webos-homebrew-channel).
+- Ideas from couch-tv's community: smaller Keep watching cards ([Seagey/couch-tv#192](https://github.com/Seagey/couch-tv/issues/192)) and a new-episode badge ([Seagey/couch-tv#215](https://github.com/Seagey/couch-tv/issues/215)).
 - The ambient home was inspired by ProjectHiten, a home replacement for rooted LG TVs shown on r/webos.
 - The clock behind the hills and the summer scenes come from [couch-tv](https://github.com/Seagey/couch-tv) by [@Seagey](https://github.com/Seagey) (MIT): its AI-made landscapes, free to use. Spring, autumn and winter are photos from Wikimedia Commons by Misha Reme, Midori, Svein Magne Tunli, Johann Jaritz, Ximonic (Simo Räsänen), Vian, Vitalii Bashkatov, Michal Klajban and Ryzhkov Sergey (CC BY-SA and CC BY; [web/scenes/CREDITS.md](web/scenes/CREDITS.md)). Clock font: Antonio (SIL OFL 1.1).
 - This product uses the TMDB API but is not endorsed or certified by [TMDB](https://www.themoviedb.org/).
 - Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).
 - Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0). Font: [Inter](https://rsms.me/inter/) (SIL OFL 1.1).
+- QR codes after [Project Nayuki's QR Code generator](https://www.nayuki.io/page/qr-code-generator-library) (MIT).
+- The rain, snow, stars, mist, the Christmas fir's decorations, the Easter eggs and hare, the moon and the bats were drawn for Foyer.
 - Built with [Claude Code](https://claude.com/claude-code).
 - Not affiliated with LG, Samsung, Google, Jellyfin or any streaming service. App names and logos belong to their owners.
 
