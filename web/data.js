@@ -442,7 +442,20 @@ var Data = (function () {
         get(JF_URL + '/Shows/NextUp?UserId=' + jfUser + '&Limit=6&Fields=ProviderIds&EnableTotalRecordCount=false', h, function (err3, up) {
           var nextUp = (!err3 && up && up.Items) || [];
           for (var u = 0; u < nextUp.length; u++) nextUp[u].foyerNext = true;
-          withShows(res.Items.concat(nextUp));
+          // When each show was last watched (a next episode hasn't been played itself): the newest played episodes.
+          get(JF_URL + '/Users/' + jfUser + '/Items?IncludeItemTypes=Episode&Recursive=true&SortBy=DatePlayed&SortOrder=Descending'
+              + '&Filters=IsPlayed&Limit=100&Fields=SeriesId&EnableImages=false&EnableTotalRecordCount=false', h, function (err4, played) {
+            var last = {}, list = (!err4 && played && played.Items) || [];
+            for (var q = 0; q < list.length; q++) {
+              var d = list[q].UserData && list[q].UserData.LastPlayedDate;
+              if (list[q].SeriesId && d && !last[list[q].SeriesId]) last[list[q].SeriesId] = d;
+            }
+            // Paused titles and next episodes in one row, the most recently watched first.
+            var all = res.Items.concat(nextUp), at = function (it) { return (it.UserData && it.UserData.LastPlayedDate) || last[it.SeriesId] || ''; };
+            for (var w = 0; w < all.length; w++) { all[w].foyerAt = at(all[w]); all[w].foyerOrder = w; }
+            all.sort(function (a, b) { return a.foyerAt === b.foyerAt ? a.foyerOrder - b.foyerOrder : a.foyerAt < b.foyerAt ? 1 : -1; });
+            withShows(all);
+          });
         });
       });
     });

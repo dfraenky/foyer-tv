@@ -269,15 +269,24 @@
     if (app.icon) {
       var img = el('img', '', box), url = app.icon;
       word.style.visibility = 'hidden';
-      img.onerror = function () { if (img.parentNode) img.parentNode.removeChild(img); word.style.visibility = ''; };
+      // The name until the logo comes; the TV's own icon server (LG, port 3000) can answer only a few seconds after a
+      // start, so a failed logo is asked for again, three times, before the name stays.
+      var tries = 0;
+      img.onerror = function () {
+        word.style.visibility = '';
+        img.style.visibility = 'hidden';
+        if (tries++ < 3 && img.parentNode) setTimeout(function () { if (img.parentNode) img.src = url + (url.indexOf('?') < 0 ? '?' : '&') + 'retry=' + tries; }, 3000 * tries);
+        else if (img.parentNode) img.parentNode.removeChild(img);
+      };
       if (lifted[url]) { showLogo(img, box, top, bottom, lifted[url], !k); return; }
-      if (lifted[url] !== false) {
-        img.onload = function () {
-          img.onload = null;
-          if (lifted[url] === undefined) lifted[url] = lift(img);
-          if (lifted[url]) showLogo(img, box, top, bottom, lifted[url], !k);
-        };
-      }
+      img.onload = function () {
+        img.onload = null;
+        img.style.visibility = '';
+        word.style.visibility = 'hidden';
+        if (lifted[url] === false) return;
+        if (lifted[url] === undefined) lifted[url] = lift(img);
+        if (lifted[url]) showLogo(img, box, top, bottom, lifted[url], !k);
+      };
       img.src = url;
     }
   }
@@ -881,14 +890,8 @@
   var rowItems = [], rowShown = '', ROW_STEP = 214;
 
   function renderResume() {
-    var resume = Data.resume, paused = [], next = null, seen = {};
-    for (var i = 0; i < resume.length; i++) {
-      var it = resume[i];
-      if (it.next) { if (!next && !seen[it.title]) next = it; continue; }
-      if (paused.length < 3) { paused.push(it); seen[it.title] = true; }
-    }
-    if (next && seen[next.title]) next = null;
-    var left = next ? paused.concat([next]) : paused, picks = [], have = {};
+    // Paused titles and next episodes mixed, the most recently watched first (Data sorts them): 4 cards.
+    var left = Data.resume.slice(0, 4), picks = [], have = {};
     for (var j = 0; j < left.length; j++) if (left[j].id) have[left[j].kind + left[j].id] = true;
     var all = Data.hasKey() ? Data.picks(TAB_KIND[0]) : [];
     for (var k = 0; k < all.length && picks.length < 3; k++) if (all[k].backdrop && !have[all[k].kind + all[k].id]) picks.push(all[k]);
