@@ -321,8 +321,8 @@
 
   // HERO: the ambient home's carousel (↑ from the shelf); ALL: every app, in the drawer under the inputs (ambient);
   // MENU: an app's menu (OK held on it).
-  var Z = {TOP: 'top', CARDS: 'cards', HERO: 'hero', RESUME: 'resume', SHELF: 'shelf', DRAWER: 'drawer', ALL: 'all', MENU: 'menu', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', ABOUT: 'about'};
-  var st = {zone: Z.SHELF, top: 0, tab: 0, card: 0, resume: 0, cat: 0, side: true, shelf: 0, drawer: 0, all: 0, menu: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0, key: 0};
+  var Z = {TOP: 'top', CARDS: 'cards', HERO: 'hero', RESUME: 'resume', DISCOVER: 'discover', SHELF: 'shelf', DRAWER: 'drawer', ALL: 'all', MENU: 'menu', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', ABOUT: 'about'};
+  var st = {zone: Z.SHELF, top: 0, tab: 0, card: 0, resume: 0, drow: 0, cat: 0, side: true, shelf: 0, drawer: 0, all: 0, menu: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0, key: 0};
   var cards = [];
 
   function sheetOpen() { return st.zone === Z.APPS || st.zone === Z.SETTINGS || st.zone === Z.EDIT || st.zone === Z.LANG || st.zone === Z.CITY || st.zone === Z.KEY || st.zone === Z.ABOUT; }
@@ -373,7 +373,9 @@
     setClass(body, 'drawer-open', inDrawer);
     setClass(body, 'ambient', amb);
     setClass(body, 'hero-on', amb && (st.zone === Z.HERO || st.zone === Z.TOP));
-    setClass(body, 'scene-on', amb && sceneOn && st.zone !== Z.HERO && st.zone !== Z.TOP);
+    setClass(body, 'scene-on', amb && sceneOn && st.zone !== Z.HERO && st.zone !== Z.TOP && st.zone !== Z.DISCOVER);
+    setClass(body, 'discover-on', st.zone === Z.DISCOVER);
+    focusDiscover();
     setClass(body, 'kw-on', amb && rowItems.length > 0);
     list = $('resume').querySelectorAll('.card');
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.RESUME && st.resume === i);
@@ -873,7 +875,7 @@
 
   // Keep watching (with Jellyfin): the last 3 paused titles and the next episode of a show, then 3 picks (TMDB) on the
   // right. One row for the remote.
-  var rowItems = [], rowShown = '', ROW_STEP = 232;
+  var rowItems = [], rowShown = '', ROW_STEP = 214;
 
   function renderResume() {
     var resume = Data.resume, paused = [], next = null, seen = {};
@@ -889,11 +891,12 @@
     for (var k = 0; k < all.length && picks.length < 3; k++) if (all[k].backdrop && !have[all[k].kind + all[k].id]) picks.push(all[k]);
     var items = [], x = 0;
     for (var a = 0; a < left.length; a++) { items.push({kind: 'resume', it: left[a], x: x}); x += ROW_STEP; }
-    if (left.length) x += 48;
+    if (left.length) x += 40;
     var picksAt = x;
     for (var b = 0; b < picks.length; b++) { items.push({kind: 'pick', it: picks[b], x: x}); x += ROW_STEP; }
+    if (picks.length) items.push({kind: 'more', it: {}, x: x});
     rowItems = items;
-    var key = JSON.stringify(left) + JSON.stringify(picks.map(function (p) { return p.id; })) + I18N.lang;
+    var key = JSON.stringify(left) + JSON.stringify(picks.map(function (p) { return p.id; })) + I18N.lang + 'more';
     if (key === rowShown) return;
     rowShown = key;
     var r = $('resume');
@@ -902,8 +905,14 @@
     if (left.length) el('div', 'label', r, tr('Keep watching')).style.left = '2px';
     if (picks.length) el('div', 'label', r, tr('For you')).style.left = (picksAt + 2) + 'px';
     for (var c = 0; c < items.length; c++) {
-      var item = items[c], card = el('div', 'card', r), shown = item.it;
+      var item = items[c], card = el('div', 'card' + (item.kind === 'more' ? ' more' : ''), r), shown = item.it;
       card.style.left = item.x + 'px';
+      if (item.kind === 'more') {
+        el('div', 'arrow', card, '›');
+        el('div', 'm', card, tr('More'));
+        hover(card, Z.RESUME, c);
+        continue;
+      }
       card.style.backgroundImage = 'url(' + (item.kind === 'pick' ? Data.image(shown.backdrop, 'w300') : shown.img) + ')';
       el('div', 'shade', card);
       var t = el('div', 't', card, shown.title);
@@ -927,6 +936,118 @@
     if (!app) { toast(trf("Couldn't open {app}.", {app: 'Jellyfin'})); return; }
     var params = it.id && /litefin/i.test(app.id) ? {tmdbId: it.id, mediaType: it.kind, title: it.title} : null;
     launcher(app.id, app.title, params)();
+  }
+
+  // MARK: - Discover (More, at the end of For you): a page of picks, Netflix-like
+
+  // The focused title over the top of the page (its photo, name, details and story), and a row of landscape tiles for
+  // each category below (Explore, Movies, Shows, Anime: what's trending). ← → along a row, ↑ ↓ between rows, OK opens.
+  var heroImgs = [], tileImgs = [];
+  var discoverRows = [], discoverCols = [], TILE_STEP = 324, DROW_STEP = 250, heroFront = 0, heroWanted = '', heroTimer = 0;
+
+  function openDiscover() {
+    st.zone = Z.DISCOVER;
+    st.drow = 0;
+    discoverCols = [];
+    renderDiscover();
+    updateFocus();
+  }
+
+  function closeDiscover() {
+    st.zone = rowItems.length ? Z.RESUME : Z.SHELF;
+    updateFocus();
+  }
+
+  function renderDiscover() {
+    var names = [tr('Explore'), tr('Movies'), tr('Shows'), tr('Anime')], rows = [];
+    for (var k = 0; k < TAB_KIND.length; k++) {
+      var list = Data.discover(TAB_KIND[k]);
+      if (list.length) rows.push({name: names[k], list: list});
+    }
+    discoverRows = rows;
+    var holder = $('discover').querySelector('.rows .all');
+    holder.innerHTML = '';
+    tileImgs = [];
+    for (var r = 0; r < rows.length; r++) {
+      var row = el('div', 'drow', holder);
+      row.style.top = (r * DROW_STEP) + 'px';
+      var label = el('div', 'label', row, rows[r].name);
+      el('span', '', label, tr('Trending'));
+      var strip = el('div', 'strip', row);
+      for (var c = 0; c < rows[r].list.length; c++) {
+        var p = rows[r].list[c], tile = el('div', 'tile', strip);
+        tile.style.left = (c * TILE_STEP) + 'px';
+        var turl = Data.image(p.backdrop, 'w300'), pre = new Image();
+        tile.style.backgroundImage = 'url(' + turl + ')';
+        pre.src = turl;   // decoded now, while the page fades in, not as each row scrolls into view
+        if (pre.decode) pre.decode().then(null, function () {});
+        tileImgs.push(pre);
+        el('div', 'shade', tile);
+        el('div', 't', tile, p.title);
+        hover(tile, Z.DISCOVER, r * 100 + c);
+      }
+      discoverCols[r] = Math.min(discoverCols[r] || 0, rows[r].list.length - 1);
+    }
+    st.drow = Math.min(st.drow, Math.max(0, rows.length - 1));
+    if (!rows.length) el('div', 'empty', holder, tr('The picks arrive in a moment.'));
+  }
+
+  /** The focus on the page: its row up top, the tile in view, and the title over the page (once the focus rests). */
+  function focusDiscover() {
+    var on = st.zone === Z.DISCOVER, page = $('discover');
+    if (!on) return;
+    var all = page.querySelector('.rows .all');
+    all.style.webkitTransform = all.style.transform = 'translateY(' + (-st.drow * DROW_STEP) + 'px)';
+    var rows = all.children;
+    for (var r = 0; r < rows.length; r++) {
+      var col = discoverCols[r] || 0, strip = rows[r].lastChild, tiles = strip.children;
+      setClass(rows[r], 'here', r === st.drow);
+      strip.style.webkitTransform = strip.style.transform = 'translateX(' + (-Math.max(0, col - 1) * TILE_STEP) + 'px)';
+      for (var c = 0; c < tiles.length; c++) setClass(tiles[c], 'focus', r === st.drow && c === col);
+    }
+    var row = discoverRows[st.drow], p = row && row.list[discoverCols[st.drow] || 0];
+    if (!p) return;
+    clearTimeout(heroTimer);
+    heroTimer = setTimeout(function () { showHero(p); }, 350);   // not for every tile flown past
+  }
+
+  function showHero(p) {
+    var page = $('discover'), info = page.querySelector('.info').children, url = Data.image(p.backdrop, 'w1280');
+    info[0].textContent = p.title;
+    info[1].textContent = p.meta || '';
+    info[2].textContent = p.overview || '';
+    info[3].textContent = '';   // where it opens is in the details line
+    if (url === heroWanted) return;
+    heroWanted = url;
+    var img = new Image();
+    function shown() {
+      if (url !== heroWanted) return;
+      var pics = page.querySelectorAll('.pic');
+      heroFront = 1 - heroFront;
+      pics[heroFront].src = url;   // an <img>: the TV can show it as it is, a CSS background is drawn again
+      setClass(pics[heroFront], 'on', true);
+      setClass(pics[1 - heroFront], 'on', false);
+    }
+    img.onload = shown;
+    img.src = url;
+    // Decoded off the main thread first (Chrome 64+): a 1280 px photo decoded on it stalled an LG C1 for ~0.3 s.
+    if (img.decode) { img.onload = null; img.decode().then(shown, shown); }
+    heroImgs = [img];
+  }
+
+  function moveDiscover(dx, dy) {
+    if (!discoverRows.length) return;
+    if (dx) {
+      var n = discoverRows[st.drow].list.length;
+      discoverCols[st.drow] = Math.max(0, Math.min(n - 1, (discoverCols[st.drow] || 0) + dx));
+    } else if (dy) {
+      st.drow = Math.max(0, Math.min(discoverRows.length - 1, st.drow + dy));
+    }
+  }
+
+  function openDiscovered() {
+    var row = discoverRows[st.drow], p = row && row.list[discoverCols[st.drow] || 0], app = p && Data.appFor(p.app);
+    if (app) launcher(app.id, app.title, pickParams(p, app))();
   }
 
   // MARK: - Every app, in the drawer (ambient)
@@ -1910,7 +2031,11 @@
         if (shelf[st.shelf]) launcher(shelf[st.shelf].id, shelf[st.shelf].title)();
         return;
       case Z.RESUME:
-        if (rowItems[st.resume]) openRowItem(rowItems[st.resume]);
+        if (rowItems[st.resume] && rowItems[st.resume].kind === 'more') openDiscover();
+        else if (rowItems[st.resume]) openRowItem(rowItems[st.resume]);
+        return;
+      case Z.DISCOVER:
+        openDiscovered();
         return;
       case Z.DRAWER:
         if (drawerItems[st.drawer]) drawerItems[st.drawer].run();
@@ -1968,8 +2093,8 @@
         else if (dy > 0) { openDrawer(); return; }
         else if (dy < 0 && ambient()) {
           // The carousel, on the pick it showed last; without picks the tabs (or nothing, without a key).
+          // The carousel is gone from the ambient home: ↑ goes to Keep watching and For you (More opens Discover).
           if (rowItems.length) { st.zone = Z.RESUME; st.resume = Math.min(st.resume, rowItems.length - 1); }
-          else toHero();
         } else if (dy < 0) {
           if (cards.length) { st.zone = Z.CARDS; st.card = nearest(cardNodes, centerX(tiles[st.shelf])); }
           else { st.zone = Z.TOP; st.top = Data.hasKey() ? st.tab : NT; }
@@ -1980,9 +2105,11 @@
         else if (dy < 0) { st.zone = Z.TOP; st.top = st.tab; }
         else if (dy > 0) st.zone = rowItems.length ? Z.RESUME : shelf.length ? Z.SHELF : Z.HERO;
         break;
+      case Z.DISCOVER:
+        moveDiscover(dx, dy);
+        break;
       case Z.RESUME:
         if (dx) st.resume = Math.max(0, Math.min(rowItems.length - 1, st.resume + dx));
-        else if (dy < 0) toHero();
         else if (dy > 0 && shelf.length) st.zone = Z.SHELF;
         break;
       case Z.CARDS:
@@ -2071,6 +2198,7 @@
     if (st.zone === Z.KEY) { if (keyAsking) askRemoveKey(false); else closeKey(); return; }
     if (st.zone === Z.ABOUT) { closeAbout(); return; }
     if (st.zone === Z.SETTINGS && !st.side) { st.side = true; updateFocus(); return; }
+    if (st.zone === Z.DISCOVER) { closeDiscover(); return; }
     if (sheetOpen()) { closeSheets(); return; }
     if (st.zone === Z.DRAWER || st.zone === Z.ALL) { closeDrawer(); return; }
     if (st.zone !== Z.SHELF && shelf.length) { st.zone = Z.SHELF; updateFocus(); return; }
@@ -2080,6 +2208,7 @@
   /** The pointer focuses what it's over (the Magic Remote, or a mouse when previewing). */
   function hover(node, zone, index) {
     node.onmouseover = function () {
+      if ((st.zone === Z.DISCOVER) !== (zone === Z.DISCOVER)) return;   // the page covers everything else
       if (st.moving || (st.zone === Z.MENU) !== (zone === Z.MENU)) return;
       if (zone === Z.ALL && st.zone !== Z.DRAWER && st.zone !== Z.ALL) return;
       if (saverOn || (sheetOpen() !== (zone === Z.APPS || zone === Z.SETTINGS || zone === Z.EDIT || zone === Z.LANG || zone === Z.CITY || zone === Z.KEY || zone === Z.ABOUT))) return;
@@ -2092,6 +2221,7 @@
       else if (zone === Z.CARDS) st.card = index;
       else if (zone === Z.SHELF) st.shelf = index;
       else if (zone === Z.RESUME) st.resume = index;
+      else if (zone === Z.DISCOVER) { st.drow = Math.floor(index / 100); discoverCols[st.drow] = index % 100; }
       else if (zone === Z.DRAWER) st.drawer = index;
       else if (zone === Z.ALL) st.all = index;
       else if (zone === Z.MENU) st.menu = index;

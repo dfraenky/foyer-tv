@@ -495,6 +495,25 @@ var Data = (function () {
     return out;
   }
 
+  /**
+   * The More page (Discover): a category's whole list, up to DISCOVER titles, each on one of the TV's apps (or in
+   * Jellyfin, or to request in Seerr) and with a photo; one per franchise.
+   */
+  var DISCOVER = 20;
+  function discoverSource(kind) { return kind === 'anime' ? anime : kind === null ? explore() : picks; }
+  function discover(kind) {
+    var from = discoverSource(kind), out = [], seen = {};
+    if (!KEY) return out;
+    for (var i = 0; i < from.length && out.length < DISCOVER; i++) {
+      var p = from[i];
+      if (kind !== null && kind !== 'anime' && kind !== p.kind) continue;
+      if (!p.detailed || !p.app || !usable(p.app) || !p.backdrop) continue;
+      var f = franchise(p.title);
+      if (!seen[f]) { seen[f] = true; out.push(p); }
+    }
+    return out;
+  }
+
   function now(kind) {
     var list = [], from = kind === 'anime' ? anime : kind === null ? explore() : picks;
     if (!KEY) return list;
@@ -779,8 +798,13 @@ var Data = (function () {
       changed();
     }
     function detailWanted() {
-      var todo = all().filter(function (x) { return !x.detailed; });
-      each(todo, function (x, next) { details(x, function () { next(); }); }, function () { finish(null); });
+      // This hour's picks first (they show now), then the rest of the lists in the background (the More page).
+      var todo = all().filter(function (x) { return !x.detailed; }), rest = [], lists = picks.concat(anime);
+      for (var r = 0; r < lists.length; r++) if (!lists[r].detailed && todo.indexOf(lists[r]) < 0) rest.push(lists[r]);
+      each(todo, function (x, next) { details(x, function () { next(); }); }, function () {
+        finish(null);
+        if (rest.length) each(rest, function (x, next) { details(x, function () { next(); }); }, function () { saveRecs(); changed(); });
+      });
     }
     // The Jellyfin library with every new list, and once after a start (the details ask whether a title is in it).
     function withLibrary(then) { if (stale || (JF_URL && !library)) fetchLibrary(then); else then(); }
@@ -847,6 +871,7 @@ var Data = (function () {
     keyChanged: function () { KEY = Prefs.tmdbKey(); recsError = ''; failedAt = 0; refreshRecs(); changed(); },
     recsError: function () { return recsError; },
     picks: now,
+    discover: discover,
     showcase: all,
     image: function (path, size) { return path ? 'https://image.tmdb.org/t/p/' + (size || 'w1280') + path : ''; },
 

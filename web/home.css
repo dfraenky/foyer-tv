@@ -747,7 +747,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .hero-on #resume, .drawer-open #resume, .menu-on #resume { opacity: 0; visibility: hidden; }
 #resume .label { position: absolute; left: 4px; top: 0; font-size: 22px; font-weight: 600; color: rgba(255, 255, 255, 0.86);
   text-shadow: 0 1px 10px rgba(0, 0, 0, 0.4); }
-#resume .card { position: absolute; top: 38px; width: 216px; height: 122px; border-radius: 14px; overflow: hidden;
+#resume .card { position: absolute; top: 38px; width: 200px; height: 113px; border-radius: 14px; overflow: hidden;
   background-color: rgba(30, 30, 34, 0.8); background-size: cover; background-position: center;
   -webkit-transition: -webkit-transform 0.2s; transition: transform 0.2s; }
 #resume .card .shade { position: absolute; left: 0; top: 0; width: 100%; height: 100%;
@@ -866,3 +866,47 @@ body:not(.scene-on) #scene .rays, body:not(.scene-on) #scene .xstar { -webkit-an
 .lite #scene .snowfar, .lite #scene .rain2 { display: none !important; }
 #scene .fx, #scene .mist { will-change: transform; }
 .lite #scene .snownear { background-image: url(scenes/fx-snow-lite.png); }   /* the far flakes too, in the same tile */
+
+/* More, at the end of For you: opens Discover. */
+#resume .card.more { width: 100px; background: rgba(255, 255, 255, 0.12); text-align: center; }
+#resume .card.more .arrow { margin-top: 14px; font-size: 48px; line-height: 50px; font-weight: 300; }
+#resume .card.more .m { font-size: 17px; font-weight: 600; }
+
+/*
+ * MARK: - Discover (More): the focused title over the top of the page, a row of landscape tiles per category below. Only
+ * transform and opacity move; the scene under it is hidden (and still).
+ */
+#discover { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; background: #0B0B0D; color: #FFF; z-index: 4;
+  opacity: 0; visibility: hidden; -webkit-transition: opacity 0.3s, visibility 0.3s; transition: opacity 0.3s, visibility 0.3s; }
+.discover-on #discover { opacity: 1; visibility: visible; }
+#discover .pic { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; object-fit: cover; object-position: center top;
+  will-change: opacity; opacity: 0; -webkit-transition: opacity 0.5s; transition: opacity 0.5s; }
+#discover .pic.on { opacity: 1; }
+.lite #discover .pic { -webkit-transition: opacity 0.5s !important; transition: opacity 0.5s !important; }
+#discover .shade { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+  background: -webkit-linear-gradient(left, rgba(11, 11, 13, 0.92), rgba(11, 11, 13, 0.55) 40%, rgba(11, 11, 13, 0) 70%); }
+#discover .shade::after { content: ''; position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+  background: -webkit-linear-gradient(top, rgba(11, 11, 13, 0) 30%, rgba(11, 11, 13, 0.85) 58%, #0B0B0D 72%); }
+#discover .info { position: absolute; left: 96px; top: 110px; width: 920px; }
+#discover .info .t { font-size: 68px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; max-height: 144px; overflow: hidden; }
+#discover .info .m { margin-top: 16px; font-size: 28px; font-weight: 500; color: rgba(255, 255, 255, 0.72); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#discover .info .o { margin-top: 16px; font-size: 25px; line-height: 1.4; max-height: 105px; overflow: hidden; color: rgba(255, 255, 255, 0.86);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+#discover .info .w { display: inline-block; margin-top: 20px; padding: 6px 14px; border-radius: 10px; background: rgba(255, 255, 255, 0.16);
+  font-size: 22px; font-weight: 600; }
+#discover .info .w:empty { display: none; }
+#discover .rows { position: absolute; left: 0; top: 590px; width: 1920px; height: 490px; overflow: hidden; }
+#discover .all { position: absolute; left: 0; top: 0; width: 1920px; will-change: transform; -webkit-transition: -webkit-transform 0.28s; transition: transform 0.28s; }
+#discover .drow { position: absolute; left: 0; width: 1920px; height: 250px; opacity: 0.55; will-change: opacity; -webkit-transition: opacity 0.2s; transition: opacity 0.2s; }
+#discover .drow.here { opacity: 1; }
+#discover .label { position: absolute; left: 100px; top: 0; font-size: 30px; font-weight: 700; }
+#discover .label span { margin-left: 14px; font-size: 22px; font-weight: 500; color: rgba(255, 255, 255, 0.55); }
+#discover .strip { position: absolute; left: 96px; top: 52px; will-change: transform; -webkit-transition: -webkit-transform 0.24s; transition: transform 0.24s; }
+#discover .tile { position: absolute; top: 0; width: 300px; height: 169px; border-radius: 16px; overflow: hidden; background-color: #222;
+  background-size: cover; background-position: center; -webkit-transition: -webkit-transform 0.18s; transition: transform 0.18s; }
+#discover .tile .shade { width: 300px; height: 169px; background: -webkit-linear-gradient(top, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.8)); }
+#discover .tile .shade::after { display: none; }
+#discover .tile .t { position: absolute; left: 14px; right: 14px; bottom: 12px; font-size: 21px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#discover .tile.focus { -webkit-transform: scale(1.08); transform: scale(1.08); z-index: 1; }
+#discover .tile.focus::before { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; border: 4px solid #FFF; border-radius: 16px; z-index: 1; }
+#discover .empty { position: absolute; left: 100px; top: 60px; font-size: 28px; color: rgba(255, 255, 255, 0.6); }

@@ -25,7 +25,7 @@ Open source, made to be adapted with an AI agent like [Claude Code](https://clau
 - **The ambient home.** While your apps have focus, a landscape fills the screen with a big clock standing behind its hills. Which one follows the season and the sun at your city: a sunrise, the day, the evening light, a starry night. Rain, snow, fog and thunderstorms fall over it as they do outside.
 - **Holidays.** A Christmas fir that gets more decorated each Advent Sunday (its star comes on Christmas Eve and stays until 6 January), fireworks on New Year's Eve, painted eggs and a hare at Easter, a moon and bats on Halloween. *Holidays* in Home Settings turns them off.
 - **Keep watching and For you.** With Jellyfin, the last three titles you paused (with their progress) and the next episode of a show sit above the dock, next to three picks. OK opens a title in Litefin (or the Jellyfin app).
-- **A carousel of picks.** Press ↑: the picks of this week go by over the whole screen (← →), with their title, details and story. *Explore*, *Movies*, *Shows* and *Anime* sit at the top right. OK opens the pick.
+- **Discover.** *More*, at the end of *For you*, opens a page like a streaming app's: the focused title over the top (its photo, details and story), and a row of what's trending for each of *Explore*, *Movies*, *Shows* and *Anime*. OK opens the title where you watch it.
 - **Every app, one press down.** ↓ shows the TV's inputs and shortcuts, then all your apps.
 - **Hold OK on an app** for its menu: move it, put it on or off the dock, or uninstall it (on a rooted LG TV).
 - **No ads.** No sponsored rows, banners or autoplaying promos.
