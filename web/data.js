@@ -113,6 +113,22 @@ var Data = (function () {
     x.send();
   }
 
+  /** POST a JSON body; done(error). */
+  function post(url, headers, body, done) {
+    var x = new XMLHttpRequest(), over = false;
+    x.open('POST', url, true);
+    x.timeout = 10000;
+    for (var h in headers) if (headers.hasOwnProperty(h)) x.setRequestHeader(h, headers[h]);
+    x.setRequestHeader('Content-Type', 'application/json');
+    x.onreadystatechange = function () {
+      if (x.readyState !== 4 || over) return;
+      over = true;
+      done(x.status >= 200 && x.status < 300 ? null : new Error('HTTP ' + x.status));
+    };
+    x.ontimeout = x.onerror = function () { if (!over) { over = true; done(new Error('no connection')); } };
+    x.send(JSON.stringify(body));
+  }
+
   var listeners = [];
   function changed() { for (var i = 0; i < listeners.length; i++) listeners[i](); }
 
@@ -445,7 +461,9 @@ var Data = (function () {
             title: ep ? it.SeriesName || it.Name : it.Name || '',
             sub: ep ? 'S' + it.ParentIndexNumber + ' E' + it.IndexNumber + (it.Name ? ' · ' + it.Name : '') : it.ProductionYear ? String(it.ProductionYear) : '',
             img: img, pct: Math.round((it.UserData && it.UserData.PlayedPercentage) || 0),
-            id: tmdb ? +tmdb : 0, kind: ep ? 'tv' : 'movie', next: next
+            id: tmdb ? +tmdb : 0, kind: ep ? 'tv' : 'movie', next: next, jf: it.Id,
+            // The next episode came out this week: "New episode" instead of "Up next".
+            fresh: next && !!it.PremiereDate && Date.now() - new Date(it.PremiereDate).getTime() < 7 * 864e5
           });
         }
         end(out);
@@ -458,6 +476,108 @@ var Data = (function () {
         build(map);
       });
     }
+  }
+
+  /**
+   * Takes a title out of Keep watching (OK held on its card): its progress back to the start, as Jellyfin's own
+   * "Remove from Continue Watching" does (10.11 has no other way). done(ok).
+   */
+  function hideResume(entry, done) {
+    if (!JF_URL || !JF_KEY || !jfUser || !entry.jf) { done(false); return; }
+    var h = {Authorization: 'MediaBrowser Client="Foyer", Device="TV", DeviceId="foyer", Version="1", Token="' + JF_KEY + '"'};
+    var body = {PlaybackPositionTicks: 0};
+    post(JF_URL + '/UserItems/' + entry.jf + '/UserData?userId=' + jfUser, h, body, function (err) {
+      function ok() {
+        resume = resume.filter(function (r) { return r.jf !== entry.jf; });
+        store('resume', resume);
+        resumeAt = Date.now();
+        changed();
+        done(true);
+      }
+      if (!err) { ok(); return; }
+      post(JF_URL + '/Users/' + jfUser + '/Items/' + entry.jf + '/UserData', h, body, function (err2) {   // before 10.9
+        if (err2) done(false); else ok();
+      });
+    });
+  }
+
+  // MARK: - More rows for Discover: coming soon, and what's new on each big service
+
+  // Each opens in Jellyfin's app: in the library there, else to request in Seerr (Litefin). Every 6 hours.
+  var MORE_SERVICES = [[8, 'Netflix'], [9, 'Prime Video'], [337, 'Disney+'], [350, 'Apple TV+'], [531, 'Paramount+'], [30, 'WOW']];
+  var moreCache = stored('more') || {}, fetchingMore = false;
+
+  function moreItem(o, kind) {
+    var date = o.release_date || o.first_air_date || '';
+    return {id: o.id, kind: kind, title: o.title || o.name || '', backdrop: o.backdrop_path || '', poster: o.poster_path || '',
+      overview: (o.overview || '').slice(0, 420), date: date, year: date.slice(0, 4),
+      rating: o.vote_count >= 20 ? Math.round(o.vote_average * 10) / 10 : 0, detailed: true};
+  }
+
+  function refreshMore() {
+    if (!KEY || fetchingMore) return;
+    var stamp = REGION + ':' + lang();
+    if (moreCache.stamp === stamp && Date.now() - (moreCache.at || 0) < 6 * 3600000) return;
+    fetchingMore = true;
+    var today = new Date(), iso = function (d) { return d.toISOString().slice(0, 10); };
+    var since = iso(new Date(today.getTime() - 150 * 864e5)), from = iso(today);
+    var q = '&language=' + lang() + '&watch_region=' + REGION;
+    var jobs = [{key: 'soon', path: '/movie/upcoming?region=' + REGION + q, kind: 'movie'},   // by popularity, as TMDB lists them
+                {key: 'soon', path: '/discover/tv?sort_by=popularity.desc&first_air_date.gte=' + from + q, kind: 'tv'}];
+    for (var i = 0; i < MORE_SERVICES.length; i++) {
+      var w = '&with_watch_providers=' + MORE_SERVICES[i][0] + '&with_watch_monetization_types=flatrate&sort_by=popularity.desc' + q;
+      jobs.push({key: 'p' + MORE_SERVICES[i][0], path: '/discover/movie?primary_release_date.gte=' + since + w, kind: 'movie'});
+      jobs.push({key: 'p' + MORE_SERVICES[i][0], path: '/discover/tv?first_air_date.gte=' + since + w, kind: 'tv'});
+    }
+    var got = {};
+    each(jobs, function (job, next) {
+      tmdb(job.path, function (err, o) {
+        var list = (!err && o && o.results) || [], out = got[job.key] || (got[job.key] = {movie: [], tv: []});
+        for (var k = 0; k < list.length; k++) {
+          var it = moreItem(list[k], job.kind);
+          // Only what TMDB has a story for in the TV's language: the rest is mostly unknown here.
+          if (it.backdrop && it.overview && (job.key !== 'soon' || it.date >= from)) out[job.kind].push(it);
+        }
+        next();
+      });
+    }, function () {
+      var rows = {};
+      for (var key in got) {
+        if (!got.hasOwnProperty(key)) continue;
+        var m = got[key].movie, t = got[key].tv, mixed = [];
+        for (var a = 0; mixed.length < 20 && (a < m.length || a < t.length); a++) {
+          if (a < m.length) mixed.push(m[a]);
+          if (a < t.length && mixed.length < 20) mixed.push(t[a]);
+        }
+        rows[key] = mixed;
+      }
+      moreCache = {stamp: stamp, at: Date.now(), rows: rows};
+      store('more', moreCache);
+      fetchingMore = false;
+      changed();
+    });
+  }
+
+  /** The extra Discover rows: [{key, name, list}], each title opening in Jellyfin (in the library) or Seerr. */
+  function moreRows() {
+    var rows = moreCache.rows || {}, out = [];
+    if (!usable('jellyfin')) return out;
+    var defs = [['soon', null]].concat(MORE_SERVICES.map(function (s) { return ['p' + s[0], s[1]]; }));
+    for (var i = 0; i < defs.length; i++) {
+      var list = rows[defs[i][0]] || [];
+      for (var j = 0; j < list.length; j++) {
+        var p = list[j], mine = inLibrary(p);
+        p.app = 'jellyfin';
+        p.service = mine ? 'Jellyfin' : 'Seerr';
+        var parts = [p.service];
+        if (p.kind === 'tv') parts.push(tr('Series'));
+        if (defs[i][0] === 'soon' && p.date) parts.push(trf('From {date}', {date: formatDate('format|EEEE, MMMM d', new Date(p.date + 'T12:00:00').getTime())}));
+        else if (p.year) parts.push(p.year);
+        p.meta = parts.join(' · ');
+      }
+      if (list.length) out.push({key: defs[i][0], service: defs[i][1], list: list});
+    }
+    return out;
   }
 
   var cache = stored('recs') || {};
@@ -590,6 +710,10 @@ var Data = (function () {
         parts.push(plural('plural|one:{n} season|other:{n} seasons', o.number_of_seasons));
       }
       var wp = o['watch/providers'], here = wp && wp.results && wp.results[REGION], flat = here && here.flatrate;
+      // For the info card (OK held): the rating, the year, and every service streaming it here.
+      p.rating = o.vote_count >= 20 ? Math.round(o.vote_average * 10) / 10 : 0;
+      p.year = (o.release_date || o.first_air_date || '').slice(0, 4);
+      p.providers = (flat || []).slice(0, 5).map(function (f) { return f.provider_name; });
       p.app = null;
       var mine = p.jellyfin || inLibrary(p);
       if (mine && usable('jellyfin')) { p.app = 'jellyfin'; p.service = 'Jellyfin'; }
@@ -853,7 +977,9 @@ var Data = (function () {
     appFor: appFor,
     usable: usable,
     services: services,
-    refresh: function () { refreshWeather(); refreshPrices(); refreshRecs(); refreshResume(); },
+    refresh: function () { refreshWeather(); refreshPrices(); refreshRecs(); refreshResume(); refreshMore(); },
+    moreRows: moreRows,
+    hideResume: hideResume,
     get resume() { return JF_URL ? resume : []; },
     settingsChanged: function () { pricesAt = 0; refreshPrices(); changed(); },
     findCity: findCity,
