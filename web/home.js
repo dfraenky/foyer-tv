@@ -321,7 +321,7 @@
 
   // HERO: the ambient home's carousel (↑ from the shelf); ALL: every app, in the drawer under the inputs (ambient);
   // MENU: an app's menu (OK held on it).
-  var Z = {TOP: 'top', CARDS: 'cards', HERO: 'hero', RESUME: 'resume', DISCOVER: 'discover', INFO: 'info', SHELF: 'shelf', DRAWER: 'drawer', ALL: 'all', MENU: 'menu', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', SEERR: 'seerr', ABOUT: 'about'};
+  var Z = {TOP: 'top', CARDS: 'cards', HERO: 'hero', RESUME: 'resume', DISCOVER: 'discover', INFO: 'info', SHELF: 'shelf', DRAWER: 'drawer', ALL: 'all', MENU: 'menu', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', SEERR: 'seerr', PHONE: 'phone', ABOUT: 'about'};
   var st = {zone: Z.SHELF, top: 0, tab: 0, card: 0, resume: 0, drow: 0, info: 0, cat: 0, side: true, shelf: 0, drawer: 0, all: 0, menu: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0, key: 0, seerr: 0};
   var cards = [];
 
@@ -1920,7 +1920,8 @@
 
   var keyStatus = '', keyWarn = false, keyTimer = 0, keySeq = 0, keyAsking = false;
 
-  function keyRows() { return keyAsking ? 2 : Prefs.tmdbKeyOnTV() ? 3 : 2; }
+  function keyRows() { return keyAsking ? 2 : (Prefs.tmdbKeyOnTV() ? 3 : 2) + (canUninstall ? 1 : 0); }
+  function keyRow() { var rows = ['field'].concat(canUninstall ? ['phone'] : [], ['save'], Prefs.tmdbKeyOnTV() ? ['remove'] : []); return rows[st.key]; }
 
   function keySteps() {
     return tr("The key brings the picks: what's trending on your streaming apps, with their photos on the screensaver.") + '\n'
@@ -1944,10 +1945,16 @@
     // A v3 key is lowercase hex: the TV's keyboard mustn't capitalize it (the city's field wants capitals).
     keyField.setAttribute('autocapitalize', 'none');
     keyField.setAttribute('autocorrect', 'off');
+    var n = 1;
+    if (canUninstall) {
+      var ph = el('div', 'row', holder, tr('Enter with your phone'));
+      sym('chevron_right', el('span', 'value', ph));
+      hover(ph, Z.KEY, n++);
+    }
     var save = el('div', 'row', holder, tr('Save'));
     sym('chevron_right', el('span', 'value', save));
-    hover(save, Z.KEY, 1);
-    if (Prefs.tmdbKeyOnTV()) hover(el('div', 'row', holder, tr('Remove the key')), Z.KEY, 2);
+    hover(save, Z.KEY, n++);
+    if (Prefs.tmdbKeyOnTV()) hover(el('div', 'row', holder, tr('Remove the key')), Z.KEY, n);
     if (keyStatus) setClass(el('div', 'hint', box, keyStatus), 'warn', keyWarn);
     el('div', 'hint steps', box, keySteps());
     if (inField) openField('keypick');
@@ -2026,22 +2033,87 @@
     keyAsking = on;
     keyStatus = '';
     clearTimeout(keyTimer);
-    st.key = on ? 0 : 2;
+    st.key = on ? 0 : keyRows() - 1;
     renderKey();
   }
 
   function activateKey() {
     if (keyAsking) { if (st.key === 1) removeKey(); else askRemoveKey(false); }
-    else if (st.key === 0) openField('keypick');
-    else if (st.key === 1) saveKey();
+    else if (keyRow() === 'field') openField('keypick');
+    else if (keyRow() === 'phone') {
+      openPhone({title: tr('TMDB key'), lang: I18N.lang, texts: phoneTexts(), fields: [{name: 'key', label: tr('TMDB key'), value: ''}]}, function (v) {
+        var f = fieldOf('keypick');
+        if (f && v.key) { f.value = v.key; saveKey(); }
+      });
+    }
+    else if (keyRow() === 'save') saveKey();
     else askRemoveKey(true);
+  }
+
+  // MARK: - With the phone: a QR code for a one-time page in the home network (rooted LG: the watcher serves it)
+
+  var phoneSpec = null, phoneDone = null, phoneFrom = '', phoneTimer = 0, phoneSeq = 0;
+
+  /** Shows the code; done(values) when the phone sent them. Back closes (and the page goes). */
+  function openPhone(spec, done) {
+    var mine = ++phoneSeq;
+    phoneSpec = spec;
+    phoneDone = done;
+    phoneFrom = st.zone;
+    var box = $('phone');
+    box.innerHTML = '';
+    el('div', 'title', box, tr('With your phone'));
+    el('div', 'wait', box, tr('Opening the page…'));
+    st.zone = Z.PHONE;
+    setClass(box, 'on', true);
+    updateFocus();
+    TV.handoffStart(spec, function (r) {
+      if (mine !== phoneSeq || st.zone !== Z.PHONE) return;
+      if (!r || !r.url) { closePhone(); toast(tr("Couldn't open the page for the phone.")); return; }
+      box.innerHTML = '';
+      el('div', 'title', box, tr('With your phone'));
+      var code = el('div', 'qr', box);
+      code.innerHTML = r.svg;
+      el('div', 'steps', box, tr('Scan the code with your phone\'s camera, paste the values and tap Send.'));
+      el('div', 'url', box, r.url.replace(/^http:\/\//, '').replace(/\/[0-9a-f]{32}$/, '/…'));
+      el('div', 'hint', box, tr('The phone has to be on the same network. The page closes after 5 minutes.'));
+      pollPhone(mine);
+    });
+  }
+
+  function pollPhone(mine) {
+    phoneTimer = setTimeout(function () {
+      if (mine !== phoneSeq || st.zone !== Z.PHONE) return;
+      TV.handoffPoll(function (r) {
+        if (mine !== phoneSeq || st.zone !== Z.PHONE) return;
+        if (r && r.state === 'done' && r.values) { var done = phoneDone; closePhone(true); done(r.values); return; }
+        if (!r || r.state === 'expired' || r.state === 'none') { closePhone(); toast(tr('The page for the phone has closed.')); return; }
+        pollPhone(mine);
+      });
+    }, 1000);
+  }
+
+  function closePhone(got) {
+    phoneSeq++;
+    clearTimeout(phoneTimer);
+    if (!got) TV.handoffStop();
+    setClass($('phone'), 'on', false);
+    st.zone = phoneFrom || Z.SHELF;
+    phoneSpec = null;
+    updateFocus();
+  }
+
+  function phoneTexts() {
+    return {send: tr('Send'), done: tr('Done: look at the TV.'), hint: tr('Only for this TV, for 5 minutes.')};
   }
 
   // MARK: - Seerr: its address and an API key, typed on the TV (Home Settings > Seerr), checked before they're saved
 
   var seerrStatusText = '', seerrWarn = false, seerrSeq = 0;
 
-  function seerrRows() { return Prefs.seerrKey() ? 4 : 3; }
+  function seerrPhone() { return canUninstall; }   // the rooted LG's watcher serves the phone's page
+  function seerrRows() { return (Prefs.seerrKey() ? 4 : 3) + (seerrPhone() ? 1 : 0); }
+  function seerrRow(name) { var rows = ['url', 'key'].concat(seerrPhone() ? ['phone'] : [], ['save'], Prefs.seerrKey() ? ['remove'] : []); return name ? rows.indexOf(name) : rows[st.seerr]; }
   function seerrFields() { return $('seerrpick').querySelectorAll('input'); }
   function seerrTyping() { var f = seerrFields(); return document.activeElement === f[0] || document.activeElement === f[1]; }
 
@@ -2061,10 +2133,15 @@
       fields[i].setAttribute('autocapitalize', 'none');
       fields[i].setAttribute('autocorrect', 'off');
     }
+    if (seerrPhone()) {
+      var ph = el('div', 'row', holder, tr('Enter with your phone'));
+      sym('chevron_right', el('span', 'value', ph));
+      hover(ph, Z.SEERR, seerrRow('phone'));
+    }
     var save = el('div', 'row', holder, tr('Save'));
     sym('chevron_right', el('span', 'value', save));
-    hover(save, Z.SEERR, 2);
-    if (Prefs.seerrKey()) hover(el('div', 'row', holder, tr('Remove')), Z.SEERR, 3);
+    hover(save, Z.SEERR, seerrRow('save'));
+    if (Prefs.seerrKey()) hover(el('div', 'row', holder, tr('Remove')), Z.SEERR, seerrRow('remove'));
     if (seerrStatusText) setClass(el('div', 'hint', box, seerrStatusText), 'warn', seerrWarn);
     el('div', 'hint steps', box, tr('With Seerr, the info card (OK held on a title) can request it.') + '\n'
       + tr('The API key is in Seerr: Settings → General → API Key.'));
@@ -2120,8 +2197,19 @@
   }
 
   function activateSeerr() {
-    if (st.seerr <= 1) seerrFields()[st.seerr].focus();
-    else if (st.seerr === 2) saveSeerr();
+    var row = seerrRow();
+    if (row === 'url' || row === 'key') seerrFields()[row === 'url' ? 0 : 1].focus();
+    else if (row === 'phone') {
+      var f = seerrFields();
+      openPhone({title: 'Seerr', lang: I18N.lang, texts: phoneTexts(), fields: [
+        {name: 'url', label: tr('Address'), value: f[0].value || Prefs.seerrUrl()}, {name: 'key', label: tr('API key'), value: ''}]}, function (v) {
+        var g = seerrFields();
+        if (v.url) g[0].value = v.url;
+        if (v.key) g[1].value = v.key;
+        saveSeerr();
+      });
+    }
+    else if (row === 'save') saveSeerr();
     else { Prefs.set('seerrUrl', undefined); Prefs.set('seerrKey', undefined); closeSeerr(); }
   }
 
@@ -2446,6 +2534,7 @@
     if (st.zone === Z.LANG) { closeLanguages(false); return; }
     if (st.zone === Z.CITY) { closeCities(false); return; }
     if (st.zone === Z.KEY) { if (keyAsking) askRemoveKey(false); else closeKey(); return; }
+    if (st.zone === Z.PHONE) { closePhone(); return; }
     if (st.zone === Z.SEERR) { closeSeerr(); return; }
     if (st.zone === Z.ABOUT) { closeAbout(); return; }
     if (st.zone === Z.SETTINGS && !st.side) { st.side = true; updateFocus(); return; }
@@ -2768,7 +2857,7 @@
   setInterval(function () {
     checkNight();
     Data.refresh();
-    if (!saverOn && !sheetOpen() && Date.now() - idleAt > SAVER_AFTER) showSaver();
+    if (!saverOn && !sheetOpen() && st.zone !== Z.PHONE && Date.now() - idleAt > SAVER_AFTER) showSaver();
     if (saverOn) tickSaverClock($('saver').querySelector('.clock'));
   }, 30000);
 

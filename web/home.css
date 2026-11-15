@@ -938,3 +938,15 @@ body:not(.scene-on) #scene .rays, body:not(.scene-on) #scene .xstar { -webkit-an
   background: rgba(255, 255, 255, 0.12); font-size: 25px; font-weight: 600; }
 #info .act.focus { background: #F5F5F7; color: #1C1C1E; }
 #info .chip { display: inline-block; margin-top: 14px; padding: 5px 14px; border-radius: 10px; background: rgba(48, 209, 88, 0.22); color: #7EE2A0; font-size: 21px; font-weight: 600; }
+
+/* With your phone: the QR code for the one-time page, over the settings. */
+#phone { position: absolute; left: 610px; top: 140px; width: 700px; padding: 40px 50px 36px; box-sizing: border-box; border-radius: 40px;
+  background: #1C1C22; color: #FFF; text-align: center; z-index: 7; display: none; box-shadow: 0 40px 90px rgba(0, 0, 0, 0.6); }
+#phone.on { display: block; }
+#phone .title { font-size: 38px; font-weight: 700; margin-bottom: 26px; }
+#phone .qr { width: 360px; height: 360px; margin: 0 auto; border-radius: 20px; overflow: hidden; background: #FFF; }
+#phone .qr svg { width: 360px; height: 360px; display: block; }
+#phone .steps { margin-top: 26px; font-size: 25px; line-height: 1.4; }
+#phone .url { margin-top: 14px; font-size: 21px; color: rgba(255, 255, 255, 0.55); }
+#phone .hint, #phone .wait { margin-top: 12px; font-size: 20px; color: rgba(255, 255, 255, 0.5); }
+#phone .wait { margin: 40px 0; font-size: 26px; }

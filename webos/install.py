@@ -125,7 +125,7 @@ def launcher(ip, key, on):
         "if(k['%s']&&k['%s'].id==='%s')delete k['%s']" % (HOME_KEY, HOME_KEY, APP_ID, HOME_KEY))
     if on:
         here = os.path.join(ROOT, 'webos', 'root')
-        for src, dst in (('launcher.js', LAUNCHER_DIR + '/launcher.js'), ('60-foyer', BOOT_HOOK)):
+        for src, dst in (('launcher.js', LAUNCHER_DIR + '/launcher.js'), ('qr.js', LAUNCHER_DIR + '/qr.js'), ('60-foyer', BOOT_HOOK)):
             with open(os.path.join(here, src), 'rb') as f:
                 copy = ssh(ip, key, 'mkdir -p %s && cat > %s && chmod 755 %s' % (os.path.dirname(dst), dst, dst), stdin=f)
             if copy.returncode != 0:

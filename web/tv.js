@@ -63,6 +63,20 @@ var TV = (function () {
     } catch (e) { finish(false); }
   }
 
+  /** The root watcher's hand-off (a value typed on a phone): done(answer or null). */
+  function handoffCall(method, body, done) {
+    var x = new XMLHttpRequest(), finished = false;
+    function finish(v) { if (!finished) { finished = true; done(v); } }
+    try {
+      x.open(method, 'http://127.0.0.1:' + ROOT_PORT + '/v1/handoff', true);
+      x.timeout = 5000;
+      x.setRequestHeader('Content-Type', 'text/plain');
+      x.onload = function () { var v = null; try { v = JSON.parse(x.responseText); } catch (e) {} finish(x.status === 200 ? v : null); };
+      x.onerror = x.ontimeout = function () { finish(null); };
+      x.send(body ? JSON.stringify(body) : null);
+    } catch (e) { finish(null); }
+  }
+
   // LG's own screensaver asks every subscribed app first. While Foyer is on screen and its own screensaver will
   // take over (`hold`, from home.js), it says no; otherwise, and in the background, the TV's runs as before.
   var saverBridge = null;
@@ -465,6 +479,11 @@ var TV = (function () {
      * Uninstalling apps, on a rooted LG TV: the page may not (the TV denies appInstallService), so webos/root's watcher
      * does it, on 127.0.0.1:ROOT_PORT. done(true) when it answers.
      */
+    /** A one-time page for a phone (rooted LG): done({url, svg}) or done(null) without the watcher. */
+    handoffStart: function (spec, done) { if (!webos) { done(null); return; } handoffCall('POST', spec, done); },
+    /** done({state: 'waiting' | 'done' | 'expired' | 'none', values}). */
+    handoffPoll: function (done) { handoffCall('GET', null, done); },
+    handoffStop: function () { handoffCall('POST', {stop: true}, function () {}); },
     canUninstall: function (done) {
       if (!webos) { done(false); return; }
       rootCall('GET', '', function (ok) { done(ok); });
