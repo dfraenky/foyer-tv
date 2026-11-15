@@ -71,6 +71,9 @@ var Prefs = (function () {
     tmdbKey: function () { return String(pick('tmdbKey', CONFIG.tmdbKey || '')).trim(); },
     /** True when the key in use was typed on the TV (Remove takes it back to config.properties'). */
     tmdbKeyOnTV: function () { return v.tmdbKey !== undefined; },
+    // Seerr (Home Settings > Seerr, typed on the TV): its address and an API key, to request titles from the info card.
+    seerrUrl: function () { return String(pick('seerrUrl', '')).replace(/\/+$/, ''); },
+    seerrKey: function () { return String(pick('seerrKey', '')); },
     setCity: function (name, lat, lon) { v.city = name; v.latitude = lat; v.longitude = lon; save(); this.version++; },
     /** Streaming services (keys like "netflix") whose titles are left out of the picks. */
     serviceOff: function (key) { return pick('servicesOff', []).indexOf(key) >= 0; },
@@ -498,6 +501,59 @@ var Data = (function () {
       post(JF_URL + '/Users/' + jfUser + '/Items/' + entry.jf + '/UserData', h, body, function (err2) {   // before 10.9
         if (err2) done(false); else ok();
       });
+    });
+  }
+
+  // MARK: - Seerr: a title's request status, and requesting it (the info card)
+
+  function seerrHeaders() { return {'X-Api-Key': Prefs.seerrKey(), Accept: 'application/json'}; }
+  function seerrOn() { return !!(Prefs.seerrUrl() && Prefs.seerrKey()); }
+
+  /** Checks an address and key before they're saved: done(error), error.rejected when Seerr said no to the key. */
+  function seerrCheck(url, key, done) {
+    get(url + '/api/v1/auth/me', {'X-Api-Key': key, Accept: 'application/json'}, function (err, me) {
+      if (err) { if (/HTTP 40[13]/.test(err.message)) err.rejected = true; done(err); return; }
+      done(me && me.id ? null : new Error('not Seerr'));
+    });
+  }
+
+  /**
+   * done(status): 'available' (in Jellyfin), 'partial', 'requested' (pending or processing), 'none', or '' when Seerr
+   * isn't set up or didn't answer. Seerr's media status: 2 pending, 3 processing, 4 partly available, 5 available.
+   */
+  function seerrStatus(p, done) {
+    if (!seerrOn()) { done(''); return; }
+    get(Prefs.seerrUrl() + '/api/v1/' + p.kind + '/' + p.id, seerrHeaders(), function (err, o) {
+      if (err || !o) { done(''); return; }
+      var st = o.mediaInfo ? o.mediaInfo.status : 1;
+      done(st === 5 ? 'available' : st === 4 ? 'partial' : st === 2 || st === 3 ? 'requested' : 'none');
+    });
+  }
+
+  /** Requests a title in Seerr (a show: every season). done(error). */
+  function seerrRequest(p, done) {
+    if (!seerrOn()) { done(new Error('Seerr is not set up')); return; }
+    var body = {mediaType: p.kind, mediaId: p.id};
+    if (p.kind === 'tv') body.seasons = 'all';
+    post(Prefs.seerrUrl() + '/api/v1/request', {'X-Api-Key': Prefs.seerrKey()}, body, done);
+  }
+
+  /** The title's trailer on YouTube (TMDB): done(video key or ''), in the TV's language first, else English. */
+  function trailer(p, done) {
+    function pickOne(list) {
+      var best = '', rank = -1;
+      for (var i = 0; list && i < list.length; i++) {
+        var v = list[i];
+        if (v.site !== 'YouTube') continue;
+        var r = (v.type === 'Trailer' ? 2 : v.type === 'Teaser' ? 1 : 0) + (v.official ? 0.5 : 0);
+        if (r > rank) { rank = r; best = v.key; }
+      }
+      return best;
+    }
+    tmdb('/' + p.kind + '/' + p.id + '/videos?language=' + lang(), function (err, o) {
+      var key = !err && o && pickOne(o.results);
+      if (key || I18N.base === 'en') { done(key || ''); return; }
+      tmdb('/' + p.kind + '/' + p.id + '/videos?language=en-US', function (err2, o2) { done((!err2 && o2 && pickOne(o2.results)) || ''); });
     });
   }
 
@@ -979,6 +1035,11 @@ var Data = (function () {
     services: services,
     refresh: function () { refreshWeather(); refreshPrices(); refreshRecs(); refreshResume(); refreshMore(); },
     moreRows: moreRows,
+    seerrOn: seerrOn,
+    seerrCheck: seerrCheck,
+    seerrStatus: seerrStatus,
+    seerrRequest: seerrRequest,
+    trailer: trailer,
     hideResume: hideResume,
     get resume() { return JF_URL ? resume : []; },
     settingsChanged: function () { pricesAt = 0; refreshPrices(); changed(); },

@@ -321,11 +321,11 @@
 
   // HERO: the ambient home's carousel (↑ from the shelf); ALL: every app, in the drawer under the inputs (ambient);
   // MENU: an app's menu (OK held on it).
-  var Z = {TOP: 'top', CARDS: 'cards', HERO: 'hero', RESUME: 'resume', DISCOVER: 'discover', INFO: 'info', SHELF: 'shelf', DRAWER: 'drawer', ALL: 'all', MENU: 'menu', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', ABOUT: 'about'};
-  var st = {zone: Z.SHELF, top: 0, tab: 0, card: 0, resume: 0, drow: 0, info: 0, cat: 0, side: true, shelf: 0, drawer: 0, all: 0, menu: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0, key: 0};
+  var Z = {TOP: 'top', CARDS: 'cards', HERO: 'hero', RESUME: 'resume', DISCOVER: 'discover', INFO: 'info', SHELF: 'shelf', DRAWER: 'drawer', ALL: 'all', MENU: 'menu', APPS: 'apps', SETTINGS: 'settings', EDIT: 'edit', LANG: 'lang', CITY: 'city', KEY: 'key', SEERR: 'seerr', ABOUT: 'about'};
+  var st = {zone: Z.SHELF, top: 0, tab: 0, card: 0, resume: 0, drow: 0, info: 0, cat: 0, side: true, shelf: 0, drawer: 0, all: 0, menu: 0, grid: 0, row: 0, edit: 0, lang: 0, city: 0, key: 0, seerr: 0};
   var cards = [];
 
-  function sheetOpen() { return st.zone === Z.APPS || st.zone === Z.SETTINGS || st.zone === Z.EDIT || st.zone === Z.LANG || st.zone === Z.CITY || st.zone === Z.KEY || st.zone === Z.ABOUT; }
+  function sheetOpen() { return st.zone === Z.APPS || st.zone === Z.SETTINGS || st.zone === Z.EDIT || st.zone === Z.LANG || st.zone === Z.CITY || st.zone === Z.KEY || st.zone === Z.SEERR || st.zone === Z.ABOUT; }
 
   function updateFocus() {
     var i, list;
@@ -364,6 +364,7 @@
     if (langHint) langHint.textContent = (st.lang + 1) + ' / ' + languageChoices().length + '  ·  ' + tr('OK picks, Back cancels.');
     focusRows($('citypick'), st.city, st.zone === Z.CITY);
     focusRows($('keypick'), st.key, st.zone === Z.KEY);
+    focusRows($('seerrpick'), st.seerr, st.zone === Z.SEERR);
     list = document.querySelectorAll('#drawer .cell');
     for (i = 0; i < list.length; i++) {
       setClass(list[i], 'focus', st.zone === Z.ALL && st.all === i);
@@ -1073,13 +1074,44 @@
     return row && row.list[discoverCols[st.drow] || 0];
   }
 
+  var infoSeerr = '', infoTrailer = '';
+
   function openInfo(p) {
     infoPick = p;
     infoFrom = st.zone;
+    infoSeerr = '';
+    infoTrailer = '';
     st.zone = Z.INFO;
     st.info = 0;
     renderInfo();
     updateFocus();
+    // Its request status in Seerr and its trailer come a moment later: the card is drawn again, its focus kept.
+    Data.seerrStatus(p, function (status) { if (infoPick === p && status) { infoSeerr = status; redrawInfo(); } });
+    Data.trailer(p, function (key) { if (infoPick === p && key) { infoTrailer = key; redrawInfo(); } });
+  }
+
+  function redrawInfo() {
+    var label = infoActions[st.info] && infoActions[st.info].label;
+    renderInfo();
+    for (var i = 0; i < infoActions.length; i++) if (infoActions[i].label === label) st.info = i;
+    st.info = Math.min(st.info, infoActions.length - 1);
+    updateFocus();
+  }
+
+  function requestPick(p) {
+    Data.seerrRequest(p, function (err) {
+      if (err) { toast(trf("Couldn't request {title}: {error}", {title: p.title, error: err.message})); return; }
+      toast(trf('{title} requested in Seerr.', {title: p.title}));
+      if (infoPick === p) { infoSeerr = 'requested'; redrawInfo(); }
+    });
+  }
+
+  /** The trailer in the TV's YouTube app (Back there comes back to Foyer). */
+  function playTrailer(key) {
+    var yt = null;
+    for (var i = 0; i < apps.length; i++) if (/youtube\.leanback|youtube/i.test(apps[i].id) && !/kids|music/i.test(apps[i].id)) { yt = apps[i]; break; }
+    if (!yt) { toast(trf("Couldn't open {app}.", {app: 'YouTube'})); return; }
+    launcher(yt.id, yt.title, {contentTarget: 'https://www.youtube.com/tv?v=' + key})();
   }
 
   function closeInfo() {
@@ -1113,6 +1145,12 @@
     if (p.providers && p.providers.length) el('div', 'p', text, trf('Streaming on {services}', {services: p.providers.join(', ')}));
     infoActions = [];
     var app = Data.appFor(p.app), jf = Data.appFor('jellyfin');
+    // Seerr (set up in Home Settings): request it here, unless it's in Jellyfin or already asked for.
+    if (Data.seerrOn() && infoSeerr && infoSeerr !== 'available') {
+      if (infoSeerr === 'requested') el('div', 'chip', text, tr('Requested'));
+      else infoActions.push({label: p.kind === 'tv' && infoSeerr === 'partial' ? tr('Request the rest') : tr('Request'), run: function () { requestPick(p); }});
+    }
+    if (infoTrailer) infoActions.push({label: tr('Trailer'), run: function () { playTrailer(infoTrailer); }});
     if (app) infoActions.push({label: trf('Open in {app}', {app: p.service || app.title}), run: function () { launcher(app.id, app.title, pickParams(p, app))(); }});
     // Also to Jellyfin (Litefin): its page there, or Seerr's to request it, when the pick opens in a streaming app.
     if (jf && p.app !== 'jellyfin' && /litefin/i.test(jf.id)) {
@@ -1569,6 +1607,7 @@
     closeField('keypick');
     setClass($('citypick'), 'open', false);
     setClass($('keypick'), 'open', false);
+    setClass($('seerrpick'), 'open', false);
     langHint = null;
     st.zone = Z.SHELF;
     updateFocus();
@@ -1611,6 +1650,8 @@
           step: function () { if (Prefs.quotes()) { Prefs.setCoin(i, !Prefs.coin(i)); Data.settingsChanged(); } }});
       })(i);
     }
+    var seerrHost = Prefs.seerrKey() ? Prefs.seerrUrl().replace(/^https?:\/\//, '') : tr('Not set');
+    rows.push({cat: 'Picks', label: 'Seerr', value: seerrHost, opens: true, seerr: true, step: function (d) { if (d >= 0) openSeerr(); }});
     rows.push({cat: 'Picks', label: tr('TMDB key'), value: Prefs.tmdbKey().length >= 4 ? '•••• ' + Prefs.tmdbKey().slice(-4) : tr('Not set'), opens: true, tmdb: true,
       step: function (d) { if (d >= 0) openKey(); }});
     var sv = Data.services();
@@ -1996,6 +2037,94 @@
     else askRemoveKey(true);
   }
 
+  // MARK: - Seerr: its address and an API key, typed on the TV (Home Settings > Seerr), checked before they're saved
+
+  var seerrStatusText = '', seerrWarn = false, seerrSeq = 0;
+
+  function seerrRows() { return Prefs.seerrKey() ? 4 : 3; }
+  function seerrFields() { return $('seerrpick').querySelectorAll('input'); }
+  function seerrTyping() { var f = seerrFields(); return document.activeElement === f[0] || document.activeElement === f[1]; }
+
+  function renderSeerr() {
+    var box = $('seerrpick').firstChild, old = seerrFields();
+    var url = old.length ? old[0].value : Prefs.seerrUrl(), key = old.length ? old[1].value : '';
+    var inField = old.length && document.activeElement === old[1] ? 1 : old.length && document.activeElement === old[0] ? 0 : -1;
+    box.innerHTML = '';
+    el('div', 'title', box, 'Seerr');
+    var list = el('div', 'list', box), holder = el('div', 'rows', list);
+    list.style.height = seerrRows() * 78 + 'px';
+    var a = textField(holder, Z.SEERR, url, 'http://192.168.1.20:5055', tr('Address'));
+    var b = textField(holder, Z.SEERR, key, Prefs.seerrKey() ? '•••• ' + Prefs.seerrKey().slice(-4) : tr('API key'), tr('API key'));
+    hover(b.parentNode, Z.SEERR, 1);
+    var fields = [a, b];
+    for (var i = 0; i < 2; i++) {
+      fields[i].setAttribute('autocapitalize', 'none');
+      fields[i].setAttribute('autocorrect', 'off');
+    }
+    var save = el('div', 'row', holder, tr('Save'));
+    sym('chevron_right', el('span', 'value', save));
+    hover(save, Z.SEERR, 2);
+    if (Prefs.seerrKey()) hover(el('div', 'row', holder, tr('Remove')), Z.SEERR, 3);
+    if (seerrStatusText) setClass(el('div', 'hint', box, seerrStatusText), 'warn', seerrWarn);
+    el('div', 'hint steps', box, tr('With Seerr, the info card (OK held on a title) can request it.') + '\n'
+      + tr('The API key is in Seerr: Settings → General → API Key.'));
+    if (inField >= 0) seerrFields()[inField].focus();
+    updateFocus();
+  }
+
+  function openSeerr() {
+    setClass($('settings'), 'open', false);
+    st.zone = Z.SEERR;
+    st.seerr = 0;
+    seerrStatusText = '';
+    $('seerrpick').firstChild.innerHTML = '';
+    renderSeerr();
+    setClass($('seerrpick'), 'open', true);
+    seerrFields()[Prefs.seerrUrl() ? 1 : 0].focus();
+    st.seerr = Prefs.seerrUrl() ? 1 : 0;
+    updateFocus();
+  }
+
+  function closeSeerr() {
+    var f = seerrFields();
+    for (var i = 0; i < f.length; i++) f[i].blur();
+    setClass($('seerrpick'), 'open', false);
+    seerrSeq++;
+    seerrStatusText = '';
+    $('seerrpick').firstChild.innerHTML = '';
+    backToSettings('seerr');
+    updateFocus();
+  }
+
+  function setSeerrStatus(text, warn) {
+    seerrStatusText = text;
+    seerrWarn = !!warn;
+    if (st.zone === Z.SEERR) renderSeerr();
+  }
+
+  function saveSeerr() {
+    var f = seerrFields(), url = f[0].value.replace(/\s+/g, '').replace(/\/+$/, ''), key = f[1].value.replace(/\s+/g, '') || Prefs.seerrKey();
+    f[0].blur(); f[1].blur();
+    if (!/^https?:\/\/[^\/]+/.test(url)) { setSeerrStatus(tr('The address must start with http:// or https://.'), true); return; }
+    if (!key) { st.seerr = 1; f[1].focus(); updateFocus(); return; }
+    setSeerrStatus(tr('Checking with Seerr…'));
+    var mine = ++seerrSeq;
+    Data.seerrCheck(url, key, function (err) {
+      if (mine !== seerrSeq || st.zone !== Z.SEERR) return;
+      if (err) { setSeerrStatus(err.rejected ? tr('Seerr refused this key.') : trf("Couldn't reach Seerr: {error}", {error: err.message}), true); return; }
+      Prefs.set('seerrUrl', url);
+      Prefs.set('seerrKey', key);
+      seerrFields()[1].value = '';
+      setSeerrStatus(tr('Saved.'));
+    });
+  }
+
+  function activateSeerr() {
+    if (st.seerr <= 1) seerrFields()[st.seerr].focus();
+    else if (st.seerr === 2) saveSeerr();
+    else { Prefs.set('seerrUrl', undefined); Prefs.set('seerrKey', undefined); closeSeerr(); }
+  }
+
   // MARK: - About this TV: what to quote when reporting a problem, without LG's or Samsung's slow menus
 
   function renderAbout(info) {
@@ -2177,6 +2306,9 @@
       case Z.KEY:
         activateKey();
         return;
+      case Z.SEERR:
+        activateSeerr();
+        return;
       case Z.ABOUT:
         closeAbout();
         return;
@@ -2295,6 +2427,9 @@
       case Z.KEY:
         if (dy) st.key = Math.max(0, Math.min(keyRows() - 1, st.key + dy));
         break;
+      case Z.SEERR:
+        if (dy) st.seerr = Math.max(0, Math.min(seerrRows() - 1, st.seerr + dy));
+        break;
     }
     updateFocus();
   }
@@ -2311,6 +2446,7 @@
     if (st.zone === Z.LANG) { closeLanguages(false); return; }
     if (st.zone === Z.CITY) { closeCities(false); return; }
     if (st.zone === Z.KEY) { if (keyAsking) askRemoveKey(false); else closeKey(); return; }
+    if (st.zone === Z.SEERR) { closeSeerr(); return; }
     if (st.zone === Z.ABOUT) { closeAbout(); return; }
     if (st.zone === Z.SETTINGS && !st.side) { st.side = true; updateFocus(); return; }
     if (st.zone === Z.INFO) { closeInfo(); return; }
@@ -2328,7 +2464,7 @@
       if ((st.zone === Z.INFO) !== (zone === Z.INFO)) return;
       if (st.moving || (st.zone === Z.MENU) !== (zone === Z.MENU)) return;
       if (zone === Z.ALL && st.zone !== Z.DRAWER && st.zone !== Z.ALL) return;
-      if (saverOn || (sheetOpen() !== (zone === Z.APPS || zone === Z.SETTINGS || zone === Z.EDIT || zone === Z.LANG || zone === Z.CITY || zone === Z.KEY || zone === Z.ABOUT))) return;
+      if (saverOn || (sheetOpen() !== (zone === Z.APPS || zone === Z.SETTINGS || zone === Z.EDIT || zone === Z.LANG || zone === Z.CITY || zone === Z.KEY || zone === Z.SEERR || zone === Z.ABOUT))) return;
       if (zone === Z.DRAWER && st.zone !== Z.DRAWER && st.zone !== Z.ALL) return;
       if (zone !== Z.DRAWER && zone !== Z.ALL && (st.zone === Z.DRAWER || st.zone === Z.ALL) && zone !== Z.SHELF) return;
       if (zone === Z.TOP && index < NT && !Data.hasKey()) return;   // the tabs are hidden without the picks
@@ -2349,6 +2485,7 @@
       else if (zone === Z.LANG) st.lang = index;
       else if (zone === Z.CITY) st.city = index;
       else if (zone === Z.KEY) st.key = index;
+      else if (zone === Z.SEERR) st.seerr = index;
       updateFocus();
     };
     node.onclick = function () { node.onmouseover(); activate(); };
@@ -2495,6 +2632,13 @@
    * its Cancel or ↑ ↓ leave the field. Samsung's keyboard sends Done as 65376 and Cancel as 65385. True: handled here.
    */
   function typing(k) {
+    if (st.zone === Z.SEERR && seerrTyping()) {
+      var f = seerrFields(), inKey = document.activeElement === f[1];
+      if (k === TV.keys.ok || k === 65376) { if (inKey) saveSeerr(); else { f[1].focus(); st.seerr = 1; updateFocus(); } }
+      else if (k === TV.keys.back || k === 27 || k === 65385) { document.activeElement.blur(); updateFocus(); }
+      else if (k === TV.keys.up || k === TV.keys.down) { document.activeElement.blur(); move(0, k === TV.keys.up ? -1 : 1); }
+      return true;
+    }
     var sheet = st.zone === Z.CITY ? 'citypick' : st.zone === Z.KEY ? 'keypick' : '';
     if (!sheet || !typingIn(sheet)) return false;
     if (k === TV.keys.ok || k === 65376) { if (st.zone === Z.CITY) searchCity(); else saveKey(); }
